@@ -14,7 +14,7 @@ fn main() {
 	let src: String = fs::read_to_string(fname)
 		.expect("couldn't find the provided file");
 	
-	let mut lex = Token::lexer(src.as_str());
+	let mut lex = TokenKind::lexer(src.as_str());
 	let tokens: Vec<_> = lex.clone()
 		.spanned()
 		.map(|el| {
@@ -23,7 +23,7 @@ fn main() {
 				.unwrap_or_else(|_| {
 					let line = lex.extras.0;
 					let column = lex.span().start - lex.extras.1;
-					Token::Error((line, column))
+					TokenKind::Error((line, column))
 				}),
 			el.1) // end tuple
 		})

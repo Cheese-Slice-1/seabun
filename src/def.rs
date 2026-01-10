@@ -7,7 +7,7 @@ use logos::{Logos, Lexer, Skip};
 
 // use chumsky::prelude::*;
 
-pub fn toprimitive(l: &mut Lexer<Token>) -> VarKind {
+pub fn toprimitive(l: &mut Lexer<TokenKind>) -> VarKind {
 	let lit = l
 		.slice()
 		.trim();
@@ -23,6 +23,8 @@ pub fn toprimitive(l: &mut Lexer<Token>) -> VarKind {
 	}
 }
 
+pub struct Token((TokenKind, String));
+
 
 /*
 	PRIORIDADES:
@@ -32,7 +34,6 @@ pub fn toprimitive(l: &mut Lexer<Token>) -> VarKind {
 	3. IDs y tipos
 	4. literales
 */
-
 #[derive(Logos)]
 #[derive(Clone, Debug, PartialEq)]
 #[logos(extras=(usize, usize))]
@@ -43,7 +44,7 @@ pub fn toprimitive(l: &mut Lexer<Token>) -> VarKind {
 	}
 	Skip
 }))]
-pub enum Token {
+pub enum TokenKind {
 	#[regex(r#"[#][^\x00-\x1F]+?"#, priority=110)]
 	Comment,
 	
@@ -167,5 +168,9 @@ pub enum VarKind {
 	Arr(Box<VarKind>, usize),
 	Tup(Vec<VarKind>, usize),
 	Rec(Vec<VarKind>, usize),
-	Unknown, // resolves when simplifying AST
+	Unknown, // resolves when making AST; if not throws error
+}
+
+pub fn tokenize() -> Vec<Token> {
+	
 }
