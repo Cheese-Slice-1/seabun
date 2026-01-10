@@ -1,22 +1,23 @@
 # foo func
 # comments work!!
+
 #! doc comment
-#! this function does somethinc
+#! this function does something
 fun foo: a num, b dot! {
 	say: "so...\n"!.
-	say: "a is ", a -> str, "\n"!.
-	sayln: "b is ", b -> str!. # automatic new line
+	say: "a is ", a as str, "\n"!.
+	sayln: "b is ", b as str!. # automatic new line
 }
 
 let str = fun str: a num, b dot! {
 	if a > b {
-		give a -> str. # give = return
+		give a as str. # give = return
 	} elif b > a {
-		give b -> str.
+		give b as str.
 	} else {
-		give (a -> dot + b) -> str.
+		give (a as dot + b) as str.
 	}
-}
+}.
 
 fun fibb num: nth num! {
 	if n <= 1 { give clip: nth, 0!. }
@@ -26,8 +27,8 @@ fun fibb num: nth num! {
 
 # function that takes a function and applies it twice
 fun dotwice: f fun: num;, x num; {
-	f(x).
-	f(x).
+	f: x!.
+	f: x!.
 }
 
 # :(...); is the same as :(...)!
@@ -35,12 +36,13 @@ fun dotwice: f fun: num;, x num; {
 
 # record called user with named fields
 # doc comment
-def person{{
+def person {{
 	name str,
-	surnames [str],
+	surnames []str,
 	age num,
-	likes [str],
-	hates [str]}}.
+	likes []str,
+	hates []str
+}}.
 
 # named tuple called rgb
 # actually a record with unnamed fields

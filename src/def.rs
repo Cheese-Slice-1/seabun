@@ -29,7 +29,7 @@ pub fn toprimitive(l: &mut Lexer<Token>) -> VarKind {
 	0. comentarios
 	1. simbolos
 	2. palabras clave
-	3. IDs
+	3. IDs y tipos
 	4. literales
 */
 
@@ -61,7 +61,7 @@ pub enum Token {
 	#[regex(",", priority=100)]
 	Comma,
 
-	#[regex("->", priority=100)]
+	// #[regex("->", priority=100)]
 	#[regex("as", priority=100)]
 	As, // casting
 	
