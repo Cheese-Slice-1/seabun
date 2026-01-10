@@ -1,0 +1,74 @@
+# foo func
+# comments work!!
+#! doc comment
+#! this function does somethinc
+fun foo: a num, b dot! {
+	say: "so...\n"!.
+	say: "a is ", a -> str, "\n"!.
+	sayln: "b is ", b -> str!. # automatic new line
+}
+
+let str = fun str: a num, b dot! {
+	if a > b {
+		give a -> str. # give = return
+	} elif b > a {
+		give b -> str.
+	} else {
+		give (a -> dot + b) -> str.
+	}
+}
+
+fun fibb num: nth num! {
+	if n <= 1 { give clip: nth, 0!. }
+	
+	give (fibb: n - 1! + fibb: nth - 2!).
+}
+
+# function that takes a function and applies it twice
+fun dotwice: f fun: num;, x num; {
+	f(x).
+	f(x).
+}
+
+# :(...); is the same as :(...)!
+# use whichever you want
+
+# record called user with named fields
+# doc comment
+def person{{
+	name str,
+	surnames [str],
+	age num,
+	likes [str],
+	hates [str]}}.
+
+# named tuple called rgb
+# actually a record with unnamed fields
+def rgb {{num, num, num}}.
+
+# no explicit entry point
+
+let first num = 10.
+let second dot = 1d5. # d stands for dot
+
+foo: first, second!.
+
+let baz str = bar: first, second!.
+
+let fibb5 = fibb: 5!.
+
+# named parameters are optional, you can use positional
+# ones instead
+let johndoe person = person{{
+	name = "John",
+	surnames = ["Doe", "Smith"],
+	age = 20,
+	likes = ["icecream", "chocolate", "programming"],
+	hates = ["bugs", "brainrot", ""]}}.
+
+# instantiation of tuple-like types
+let grassygreen rgb = rgb{{197, 255, 0}}.
+let puregreen = rgb{{0x00, 0xFF, 0x00}}.
+
+dotwice:
+	fun: a num! { sayln: a!. }!. # heres a closure
