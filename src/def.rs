@@ -7,24 +7,13 @@ use logos::{Logos, Lexer, Skip};
 
 // use chumsky::prelude::*;
 
-pub fn toprimitive(l: &mut Lexer<TokenKind>) -> VarKind {
-	let lit = l
-		.slice()
-		.trim();
-		
-	// predefined literals
-	match lit {
-		"num" => VarKind::Num,
-		"dot" => VarKind::Dot,
-		"chr" => VarKind::Chr,
-		"str" => VarKind::Str,
-		"bln" => VarKind::Bln,
-		_ => VarKind::Unknown, // non-primitive (like tuples, arrays and records)
-	}
+/// a seabun token; contains all necessary information
+#[derive(Debug, Clone, PartialEq)]
+pub struct Token {
+	pub kind: TokenKind,
+	pub literal: String,
+	pub span: std::ops::Range<usize>,
 }
-
-pub struct Token((TokenKind, String));
-
 
 /*
 	PRIORIDADES:
@@ -48,13 +37,8 @@ pub enum TokenKind {
 	#[regex(r#"[#][^\x00-\x1F]+?"#, priority=110)]
 	Comment,
 	
-	#[regex(r#"#![^\x00-\x1F]+?"#, |doc| {
-		doc
-			.slice()
-			.trim()
-			.to_owned()
-	}, priority=120)]
-	Doc(String),
+	#[regex(r#"#![^\x00-\x1F]+?"#, priority=120)]
+	Doc,
 
 	#[regex(r#"\."#, priority=100)]
 	ExprEnd, // end of an expression
@@ -63,11 +47,14 @@ pub enum TokenKind {
 	Comma,
 
 	// #[regex("->", priority=100)]
-	#[regex("as", priority=100)]
+	#[regex("as", priority=60)]
 	As, // casting
 	
 	#[regex("let", priority=60)]
-	Let, // variable declaration
+	Let, // immutable variable declaration
+
+	#[regex("var", priority=60)]
+	Var, // mutable variable declaration
 
 	#[regex("=", priority=100)]
 	EqSign,
@@ -115,62 +102,47 @@ pub enum TokenKind {
 	#[regex("-", priority=100)]
 	Minus,
 	
-	#[regex(r#"[^\d\x00-\x1F][a-zA-Z_][\da-zA-Z_]*"#, |name| {
-		name
-			.slice()
-			.trim()
-			.to_owned()
-	}, priority=40)]
-	Name(String), // foo, bar_, _baz, bar2, seabun
+	#[regex(r#"[^\d\x00-\x1F][a-zA-Z_][\da-zA-Z_]*"#, priority=40)]
+	Name, // foo, bar_, _baz, bar2, seabun
 	
-	#[regex(r#"[-]?\d+"#, |catch| {
-		catch.slice()
-			.trim()
-			.parse::<i64>()
-			.unwrap()
-	}, priority=20)]
-	Num(i64), // 1, 2, 3, 4
+	#[regex(r#"[-]?\d+"#, priority=20)]
+	Num, // 1, 2, 3, 4
 	
-	#[regex(r#"[-]?[\d]*d[\d]+"#, |catch| {
-		catch.slice()
-			.trim()
-			.replace("d", ".")
-			.parse::<f64>()
-			.unwrap()
-	}, priority=20)]
-	Dot(f64), // 1d5, d103, -9d9
+	#[regex(r#"[-]?[\d]*d[\d]+"#, priority=20)]
+	Dot, // 1d5, d103, -9d9
 	
-	#[regex(r#""([^"\\\x00-\x1F]|\\(["\\bnfrt]|u[a-fA-F0-9]{4}|u[a-fA-F0-9]{2}))*""#,
-		|s| s.slice().trim()[1..s.slice().len()-1].to_owned(),
-		priority=20)]
-	Str(String), // "hola", "HOLA", "HoLa123", "\""
+	#[regex(r#""([^"\\\x00-\x1F]|\\(["\\bnfrt]|u[a-fA-F0-9]{4}|u[a-fA-F0-9]{2}))*""#, priority=20)]
+	Str, // "hola", "HOLA", "HoLa123", "\""
 
 	// ONE character or escape
-	#[regex(r#"'([^'\\\x00-\x1F]|\\(['\\bnfrt]|u[a-fA-F0-9]{4}|u[a-fA-F0-9]{2}))?'"#,
-		|c| c.slice().trim()[1..c.slice().len()-1].to_owned(),
-		priority=20)]
-	Chr(String), // 'c', '\u6F', '\u1234'
+	#[regex(r#"'([^'\\\x00-\x1F]|\\(['\\bnfrt]|u[a-fA-F0-9]{4}|u[a-fA-F0-9]{2}))?'"#, priority=20)]
+	Chr, // 'c', '\u6F', '\u1234'
 	
 	#[regex(r#"true|false"#, priority=60)]
-	Bln(bool),
-	
-	Error((usize, usize)),
-}
-
-/// every possible variable kind in seabun
-#[derive(Clone, Debug, PartialEq)]
-pub enum VarKind {
-	Num,
-	Dot,
-	Str,
-	Chr,
 	Bln,
-	Arr(Box<VarKind>, usize),
-	Tup(Vec<VarKind>, usize),
-	Rec(Vec<VarKind>, usize),
-	Unknown, // resolves when making AST; if not throws error
+	
+	Error ((usize, usize)),
 }
 
-pub fn tokenize() -> Vec<Token> {
-	
+pub fn tokenize(lex: &mut Lexer<TokenKind>) -> Vec<Token> {
+	lex.clone()
+		.spanned() // gives (kind, span)
+		.map(|el| { // el = one (kind, span) pair
+			lex.next(); // advance lexer to get the slices
+			Token {
+				kind: el.0.unwrap_or_else( // token kind start
+					|_| {
+						let line = lex.extras.0;
+						let column = lex.span().start - lex.extras.1;
+						TokenKind::Error((line, column))
+					}
+				), // token kind end
+
+				literal: lex.slice().trim().to_owned(), // literal
+
+				span: el.1 // span
+			}
+		})
+		.filter(|el| el.kind != TokenKind::Comment)
+		.collect()
 }

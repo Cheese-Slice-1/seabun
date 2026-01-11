@@ -43,13 +43,7 @@ pub enum Expr {
 	Pow(Box<Expr>, Box<Expr>),
 	Mod(Box<Expr>, Box<Expr>),
 	
-	// variable declarations
-	VarHalf { // e.g. VarHalf{id: "s".to_owned(), kind: VarKind::Str, ismut: false}
-		id: String,
-		kind: VarKind,
-		ismut: bool
-	},
-	VarFull { // e.g. VarFull{id: "s".to_owned(), kind: VarKind::Str, val: Box::new(Expr::Str("a".to_owned())), ismut: false}
+	Var { // e.g. Var {id: "s".to_owned(), kind: VarKind::Str, val: Box::new(Expr::Str("a".to_owned())), ismut: false}
 		id: String,
 		kind: VarKind,
 		val: Box<Expr>,
@@ -57,8 +51,43 @@ pub enum Expr {
 	},
 }
 
+/// every possible variable kind in seabun
+#[derive(Clone, Debug, PartialEq)]
+pub enum VarKind {
+	Num,
+	Dot,
+	Str,
+	Chr,
+	Bln,
+	Arr (Box<VarKind>, usize),
+	Tup (Vec<VarKind>, usize),
+	Rec (Vec<VarKind>, usize),
+	Unknown, // resolves when making AST; if not throws error
+}
+
 fn primitiveast(tokens: Vec<Token>) -> Vec<Expr> {
-	
+	let mut i: usize = 0;
+
+	while i < tokens.len() {
+		match tokens[i] {
+			
+			_ => {},
+		}
+
+		i++;
+	}
+}
+
+pub fn toprimitive(lit: String) -> VarKind {
+	// predefined literals
+	match lit.as_str() {
+		"num" => VarKind::Num,
+		"dot" => VarKind::Dot,
+		"chr" => VarKind::Chr,
+		"str" => VarKind::Str,
+		"bln" => VarKind::Bln,
+		_ => VarKind::Unknown, // non-primitive (like tuples, arrays and records)
+	}
 }
 
 /*

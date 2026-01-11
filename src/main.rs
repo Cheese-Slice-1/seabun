@@ -13,22 +13,23 @@ fn main() {
 
 	let src: String = fs::read_to_string(fname)
 		.expect("couldn't find the provided file");
-	
-	let mut lex = TokenKind::lexer(src.as_str());
-	let tokens: Vec<_> = lex.clone()
-		.spanned()
-		.map(|el| {
-			lex.next();
-			(el.0 // start tuple
-				.unwrap_or_else(|_| {
-					let line = lex.extras.0;
-					let column = lex.span().start - lex.extras.1;
-					TokenKind::Error((line, column))
-				}),
-			el.1) // end tuple
-		})
-		.filter(|el| el.0 != Token::Comment)
-		.collect();
 
-	println!("{:?}", tokens);
+	let mut lex = TokenKind::lexer(src.as_str());
+	let tokens_spanned: Vec<_> = tokenize(&mut lex);
+
+	println!("{:#?}", tokens_spanned);
 }
+
+/*
+	Let -> consume and start Expr::Var
+		Name -> evaluate (name ->)
+		Name? (kind) -> evaluate (name -> varkind)
+			<- cut (before eqsign)
+		EqSign -> consume
+			<- cut (after eqsign)
+		Expr -> evaluate 
+			<- cut (before exprend)
+		ExprEnd -> consume
+			<- cut (after exprend; delete if next is empty)
+	...
+*/
