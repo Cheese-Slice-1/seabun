@@ -15,7 +15,7 @@ seabun aims to be _different_ (not better, not cool, just different), breaking s
 some of these "strange" design choices include:
 - using a period (.) instead of a semicolon (;)
 - using `: ... !` or `: ... ;` instead of `( ... )` when calling or defining functions and lambdas
-- using `{{ ... }}` for defining record
+- using `{{ ... }}` for defining custom types
 - making lambdas (anonymous functions) use almost the same syntax as named functions
 - giving default values to all primitive types (and therefore to all user-defined types)
 - not being able to define type-specific functions (like class functions n OOP or `impl` statement in rust"
