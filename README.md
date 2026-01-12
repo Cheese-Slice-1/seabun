@@ -20,4 +20,4 @@ some of these "strange" design choices include:
 - giving default values to all primitive types (and therefore to all user-defined types)
 - not being able to define type-specific functions (like class functions n OOP or `impl` statement in rust"
 
-(todo: examples(tho i should finish the compiler first lol))
+(todo: examples (tho i should finish the compiler first lol))
