@@ -1,5 +1,5 @@
 ###### everything is in lowercase because of the vibes i want the language to have: unserious, informal and friendly
-###### ... i won't take responsibility for the disgust, anger, frustration, etc. you may feel reading an all-lowercase text :Þ
+###### also i won't take responsibility for the disgust, anger, frustration, etc. you may feel reading an all-lowercase text :Þ
 
 (todo: logo image)
 
