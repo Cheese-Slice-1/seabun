@@ -1,10 +1,14 @@
+###### everything is in lowercase because of the vibes i want the language to have: unserious, informal and friendly
+
 (todo: logo image)
+
+# introduction
 
 seabun (lowercase everything!) is a somewhat silly programming language I made for fun! ^w^
 
 I designed it to be as silly as I could make it while also having a readable syntax.
 
-# Design goals
+# design goals
 seabun aims to be *different* (not better, not cool, just different), breaking some common standards for the sole purpose of diverging from the norm.
 
 some of these "design patterns" include:
