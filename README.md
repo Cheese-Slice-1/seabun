@@ -9,8 +9,8 @@ seabun (lowercase everything!) is a somewhat silly programming language I made f
 
 I designed it to be as silly as I could make it while also having a readable syntax.
 
-# _design goals_
-seabun aims to be _different_ (not better, not cool, just different), breaking some common practices for the sole purpose of diverging from the norm.
+# _design philosophy_
+    seabun aims to be _different_ (not better, not cool, just different), breaking some common practices for the sole purpose of diverging from "the norm".
 
 some of these "strange" design choices include:
 - using a period (.) instead of a semicolon (;)
