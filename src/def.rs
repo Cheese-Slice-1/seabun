@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use ecow::{EcoString, EcoVec};
 
 extern crate logos;
 extern crate chumsky;
@@ -11,7 +11,7 @@ use logos::{Logos, Lexer, Skip};
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {
 	pub kind: TokenKind,
-	pub literal: String,
+	pub literal: EcoString,
 	pub span: std::ops::Range<usize>,
 }
 
@@ -56,6 +56,9 @@ pub enum TokenKind {
 	#[regex("var", priority=60)]
 	Var, // mutable variable declaration
 
+	#[regex("def", priority=60)]
+	Def, // type definition
+
 	#[regex("=", priority=100)]
 	EqSign,
 	
@@ -76,10 +79,10 @@ pub enum TokenKind {
 	RBrace, // also ends a statement (block body)
 
 	#[regex("[{]{2}", priority=101)]
-	LDblBrace, // tuple start
+	LDblBrace, // composite type start
 
 	#[regex("[}]{2}", priority=101)]
-	RDblBrace, // tuple end
+	RDblBrace, // composite type end
 	
 	#[regex("if", priority=60)]
 	If,
@@ -103,7 +106,7 @@ pub enum TokenKind {
 	Minus,
 	
 	#[regex(r#"[^\d\x00-\x1F][a-zA-Z_][\da-zA-Z_]*"#, priority=40)]
-	Name, // foo, bar_, _baz, bar2, seabun
+	Word, // foo, bar_, _baz, bar2, seabun
 	
 	#[regex(r#"[-]?\d+"#, priority=20)]
 	Num, // 1, 2, 3, 4
@@ -124,7 +127,7 @@ pub enum TokenKind {
 	Error ((usize, usize)),
 }
 
-pub fn tokenize(lex: &mut Lexer<TokenKind>) -> Vec<Token> {
+pub fn tokenize(lex: &mut Lexer<TokenKind>) -> EcoVec<Token> {
 	lex.clone()
 		.spanned() // gives (kind, span)
 		.map(|el| { // el = one (kind, span) pair
@@ -138,7 +141,7 @@ pub fn tokenize(lex: &mut Lexer<TokenKind>) -> Vec<Token> {
 					}
 				), // token kind end
 
-				literal: lex.slice().trim().to_owned(), // literal
+				literal: lex.slice().trim().into(), // literal
 
 				span: el.1 // span
 			}

@@ -1,21 +1,27 @@
-use std::{env, fs};
+use std::{env::args, fs::read_to_string};
+use ecow::{EcoString, EcoVec};
 
-#[path="def.rs"]
 mod def;
 use def::{*};
+
+mod aster;
+use aster::{*};
 
 use logos::Logos;
 
 fn main() {
-	let fname = env::args()
+	let fname = args()
 		.nth(1)
 		.expect("please, provide a filename");
 
-	let src: String = fs::read_to_string(fname)
-		.expect("couldn't find the provided file");
+	let src: EcoString = read_to_string(fname.clone())
+		.unwrap_or_else(|_| {
+			panic!("couldn't find provided file {fname}")
+		})
+		.into();
 
 	let mut lex = TokenKind::lexer(src.as_str());
-	let tokens_spanned: Vec<_> = tokenize(&mut lex);
+	let tokens_spanned: EcoVec<_> = tokenize(&mut lex);
 
 	println!("{:#?}", tokens_spanned);
 }

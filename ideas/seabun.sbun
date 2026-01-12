@@ -9,7 +9,7 @@ fun foo: a num, b dot! {
 	sayln: "b is ", b as str!. # automatic new line
 }
 
-let str = fun str: a num, b dot! {
+let bar = fun str: a num, b dot! {
 	if a > b {
 		give a as str. # give = return
 	} elif b > a {
@@ -36,7 +36,7 @@ fun dotwice: f fun: num;, x num; {
 
 # record called user with named fields
 # doc comment
-def person {{
+def person = rec{{
 	name str,
 	surnames []str,
 	age num,
@@ -46,7 +46,7 @@ def person {{
 
 # named tuple called rgb
 # actually a record with unnamed fields
-def rgb {{num, num, num}}.
+def rgb = tup{{num, num, num}}.
 
 # no explicit entry point
 
