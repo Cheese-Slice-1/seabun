@@ -1,1 +1,8 @@
 use logos + custom ast builder??
+
+make a modules:
+  - parse: (AST/CST maker)
+    - def.rs
+    - aster.rs
+  - inter: (IR maker)
+    - ??.rs
