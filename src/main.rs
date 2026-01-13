@@ -5,7 +5,7 @@ mod def;
 use def::{*};
 
 mod aster;
-use aster::{*};
+use aster::{Expr, VarKind, primitive_ast};
 
 use logos::Logos;
 
@@ -24,6 +24,8 @@ fn main() {
 	let tokens_spanned: EcoVec<_> = tokenize(&mut lex);
 
 	println!("{:#?}", tokens_spanned);
+
+	let prim_ast = primitive_ast(tokens_spanned);
 }
 
 /*

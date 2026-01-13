@@ -5,19 +5,22 @@
 
 # _introduction_
 
-seabun (lowercase everything!) is a somewhat silly programming language I made for fun! ^w^
+seabun (lowercase everything!) is a somewhat silly programming language i made for fun :3
 
-I designed it to be as silly as I could make it while also having a readable syntax.
+i designed it to be as dumb while also somehwt readable as i could make it
 
 # _design philosophy_
-seabun aims to be _different_ (not better, not cool, just different), breaking some common practices for the sole purpose of diverging from "the norm".
+seabun aims to be _different_ (not better, not cool, just different), breaking some common practices for the sole purpose of diverging from "the norm"
 
 some of these "strange" design choices include:
 - using a period (.) instead of a semicolon (;)
 - using `: ... !` or `: ... ;` instead of `( ... )` when calling or defining functions and lambdas
-- using `{{ ... }}` for defining custom types
-- making lambdas (anonymous functions) use almost the same syntax as named functions
+- using `{{ ... }}` for defining records
+- using ``
+- making lambdas the default function type (makes for a more natural reading imo)
+    let a = fun: x num! { say (x + 64) as str. }.
+    let b = fun num: x num! { give x + 65 }.
 - giving default values to all primitive types (and therefore to all user-defined types)
-- not being able to define type-specific functions (like class functions n OOP or `impl` statement in rust"
+- not being able to define  functions (like class functions in OOP or `impl` statement in rust")
 
 (todo: examples (tho i should finish the compiler first lol))

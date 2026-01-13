@@ -3,7 +3,7 @@
 
 #! doc comment
 #! this function does something
-fun foo: a num, b dot! {
+let foo = fun: a num, b dot! {
 	say: "so...\n"!.
 	say: "a is ", a as str, "\n"!.
 	sayln: "b is ", b as str!. # automatic new line
@@ -19,14 +19,14 @@ let bar = fun str: a num, b dot! {
 	}
 }.
 
-fun fibb num: nth num! {
+let fibb = fun num: nth num! {
 	if n <= 1 { give clip: nth, 0!. }
 	
 	give (fibb: n - 1! + fibb: nth - 2!).
 }
 
 # function that takes a function and applies it twice
-fun dotwice: f fun: num;, x num; {
+let dotwice = fun: f fun: num;, x num; {
 	f: x!.
 	f: x!.
 }

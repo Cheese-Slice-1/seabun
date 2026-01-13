@@ -7,47 +7,65 @@ use crate::def::{Token, TokenKind};
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
 	/// integer
-	Num(i64),
+	Num (i64),
 	
 	/// float
-	Dot(f64),
+	Dot (f64),
 	
 	/// string literal
-	Str(EcoString),
+	Str (EcoString),
 	
-	/// char literal
-	Chr(char),
+	/// character literal
+	Chr (char),
 
-	/// bool
-	Bln(bool),
+	/// boolean
+	Bln (bool),
 
 	/// variable/function/type name
-	Name(EcoString),
+	Name (EcoString),
 
-	/// tuple literal
-	Tup(EcoVec<Expr>),
+	/* COMPUND EXPRESSIONS */
 
-	/// array literal
-	Arr(EcoVec<Expr>, VarKind), // varkind = first value's varkind
+	/// a single block
+	Block (EcoVec<Expr>),
+
+	/// tuple
+	Tup (EcoVec<Expr>),
+
+	/// array
+	Arr (EcoVec<Expr>, VarKind), // varkind = first value's varkind
 	
-	Rec(HashMap<EcoString, Expr>),
+	/// record
+	Rec (HashMap<EcoString, Expr>),
 
-	/* compound expressions */
+	Fun { // a function value; in a fun name :...! {} situation a Var 
+		kind: VarKind, // return type
+		args: (usize, HashMap<EcoString, VarKind>), // argument types + names
+		body: EcoVec<Expr>, 
+	},
 	
 	// arithmetics
-	Add(Box<Expr>, Box<Expr>), // +
-	Sub(Box<Expr>, Box<Expr>), // -
-	Mul(Box<Expr>, Box<Expr>), // *
-	Div(Box<Expr>, Box<Expr>), // /
-	Pow(Box<Expr>, Box<Expr>), // ^
-	Mod(Box<Expr>, Box<Expr>), // %
+	Add (Box<Expr>, Box<Expr>), // x+y
+	Sub (Box<Expr>, Box<Expr>), // x-y
+	Mul (Box<Expr>, Box<Expr>), // x*y
+	Div (Box<Expr>, Box<Expr>), // x/y
+	Pow (Box<Expr>, Box<Expr>), // x^y
+	Mod (Box<Expr>, Box<Expr>), // x%y
 	
-	Var { // e.g. Var {id: "s".to_owned(), kind: VarKind::Str, val: Box::new(Expr::Str("a".to_owned())), ismut: false}
+	/// represents a new push or allocation
+	Var { // e.g. let s = "". -> Var {id: "s".into(), kind: VarKind::Str, val: Box::new(Expr::Str("a".to_owned())), ismut: false}
 		id: EcoString,
 		kind: VarKind,
 		val: Box<Expr>,
-		ismut: bool
+		ismut: bool,
 	},
+
+	/// represents a change in an already existing variable
+	ReVar { // e.g. 
+		id: EcoString,
+		kind: VarKind,
+		val: Box<Expr>,
+	}
 }
 
 /// every possible variable kind in Seabun;
@@ -61,14 +79,31 @@ pub enum VarKind {
 	Bln,
 	Arr (Box<VarKind>, usize),
 	Tup (EcoVec<VarKind>, usize),
+
 	// records may only differ in property names.
-	// as they are part of the type itself, it's easy to compare them
+	// as they are part of the type itself, it's easy to compare them and cast them
 	Rec (HashMap<EcoString, VarKind>),
+	/*
+		an example would be:
+			def rec_a = {{
+				foo str,
+				bar num
+			}}.
+			def re_b = {{
+				foo str,
+				bar num
+			}}.
+			let something = rec_a {{}}
+	*/
+
+	// same principle for functions.
+	// as the arguments and return type are part of the type, you can cast them
+	Fun (HashMap<EcoString, VarKind>, Box<VarKind>),
 	Unknown, // resolves when making AST; if not throws error
 }
 
 /// creates a very primitive ast
-pub fn primitiveast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
+pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 	let mut i: usize = 0;
 	let mut res: EcoVec<Expr> = EcoVec::new();
 
@@ -77,22 +112,24 @@ pub fn primitiveast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 			Token {kind: TokenKind::Let, ..} => {
 				let decl: EcoVec<Token> = tokens[i..] // let-related chunk
 					.iter()
-					.take_while(|tok| tok.kind != TokenKind::ExprEnd).cloned()
+					.take_while(|tok| tok.kind != TokenKind::ExprEnd)
+					.cloned()
 					.collect::<EcoVec<Token>>();
 				
 				i += decl.len() - 1;
-				res.push(parsevar(decl, false));
+				res.push(parse_var(decl, false));
 			},
 			Token {kind: TokenKind::Var, ..} => {
 				let decl: EcoVec<Token> = tokens[i..] // var-related chunk
 					.iter()
-					.take_while(|tok| tok.kind != TokenKind::ExprEnd).cloned()
+					.take_while(|tok| tok.kind != TokenKind::ExprEnd)
+					.cloned()
 					.collect::<EcoVec<Token>>();
 				
 				i += decl.len() - 1;
-				res.push(parsevar(decl, true));
+				res.push(parse_var(decl, true));
 			},
-			_ => {},
+			_ => { unimplemented!(); },
 		}
 
 		i += 1;
@@ -101,39 +138,66 @@ pub fn primitiveast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 	res
 }
 
-pub fn advancedast(tokebs: EcoVec<Expr>) -> EcoVec<Expr> {
-	
+pub fn advanced_ast(_ast: EcoVec<Expr>) -> EcoVec<Expr> {
+	todo!();
 }
 
 // AST-RELATED FUNCTIONS
 
-fn parsevar(tokens: EcoVec<Token>, ismut: bool) -> Expr {
-	let Some((nametype, value)) = tokens
-		.split_once(|tok| tok.kind == TokenKind::EqSign)
-	else {
-		panic!("malformed delcaration: \{insert line+column\}");
-	};
+fn parse_var(tokens: EcoVec<Token>, ismut: bool) -> Expr {
+	let parts: EcoVec<_> = tokens
+		.split(|tok| tok.kind == TokenKind::EqSign)
+		.collect::<EcoVec<_>>();
+	
+	println!("{:#?}", parts);
+	todo!();
+	/*
+	let (name, kind, value) = (
+		parts
+			.get(0)
+			.expect("malformed edclaration")
+			.get(0), // variable name; obligatory
+		parts
+			.get(0)
+			.get(1), // variable type
+		parts
+			.get(1) // variable value
+		);
 
-	if nametype.len() > 2 {
-		panic!("malformed delcaration: \{insert line+column\}");
+	if parts[0].len() > 2 {
+		panic!("malformed delcaration: {{insert line+column}}");
 	}
 
 	Expr::Var {
-		id: nametype
-			.get(0)
-			.unwrap_or_else(|_| panic!("malformed delcaration: \{insert line+column\}"))
-			.literal,
-		kind: match nametype.get(1) {
-			Some(tok) => tovarkind(tok.literal),
+		id: name
+			.unwrap()
+			.literal
+			.clone(),
+		kind: match kind {
+			Some(tok) => to_varkind(tok.literal),
 			None => VarKind::Unknown,
 		},
-		ismut: ismut,
+		val: Box::new(parse_val(value)),
+		ismut,
 	}
+	*/
 }
 
-pub fn tovarkind(lit: EcoString) -> VarKind {
+/// precedence-based parsing
+fn parse_val(content: EcoVec<Token>) -> Expr {
+	if content.len() < 2 {
+		return match &content[0].kind {
+			TokenKind::Word => Expr::Name(content[0].literal.clone()),
+			_ => unimplemented!(),
+		};
+	}
+
+	todo!();
+}
+
+pub fn to_varkind(lit: EcoString) -> VarKind {
 	// predefined literals
-	match &lit {
+	match &lit[..] {
 		"num" => VarKind::Num,
 		"dot" => VarKind::Dot,
 		"chr" => VarKind::Chr,
