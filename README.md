@@ -17,12 +17,14 @@ seabun aims to be _different_ (not better, not cool, just different), breaking s
 some of these "strange" design choices include:
 
 - using a period (.) instead of a semicolon (;)
-- using `: ... !` or `: ... ;` instead of `( ... )` when calling or defining functions and lambdas
+- making lambdas the default function type
+- using `: ... !` or `: ... ;` instead of `( ... )` when calling or defining functions
+  - `let name = fun: arg_name type, ...! body`
+  - `let name = fun type: arg type, ...! body`
+  - `name: param1, ...!.`
 - using `{{ ... }}` for defining records
 - using `(( ..., ... ))` for defining tuples
-- making lambdas the default function type (makes for a more natural reading imo)
-  > `let name = fun optional_type: arg_name type, ...! body`
 - giving default values to all primitive types (and therefore to all user-defined types)
-- not being able to define  functions (like class functions in OOP or `impl` statement in rust")
+- not being able to define methods for types (like class methods in OOP or `impl` statement in rust")
 
 (todo: examples (tho i should finish the compiler first lol))
