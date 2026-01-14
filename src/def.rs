@@ -104,14 +104,26 @@ pub enum TokenKind {
 
 	#[regex("-", priority=100)]
 	Minus,
+
+	#[regex("[*]", priority=100)]
+	Star,
+
+	#[regex("/", priority=100)]
+	Slash,
+
+	#[regex(r#"\^"#, priority=100)]
+	Caret,
+
+	#[regex("%", priority=100)]
+	Percent,
 	
 	#[regex(r#"[^\d\x00-\x1F][a-zA-Z_][\da-zA-Z_]*"#, priority=40)]
 	Word, // foo, bar_, _baz, bar2, seabun
 	
-	#[regex(r#"[-]?\d+"#, priority=20)]
+	#[regex(r#"\d+"#, priority=20)]
 	Num, // 1, 2, 3, 4
 	
-	#[regex(r#"[-]?[\d]*d[\d]+"#, priority=20)]
+	#[regex(r#"[\d]*d[\d]+"#, priority=20)]
 	Dot, // 1d5, d103, -9d9
 	
 	#[regex(r#""([^"\\\x00-\x1F]|\\(["\\bnfrt]|u[a-fA-F0-9]{4}|u[a-fA-F0-9]{2}))*""#, priority=20)]

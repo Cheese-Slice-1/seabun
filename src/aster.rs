@@ -41,7 +41,7 @@ pub enum Expr {
 	Fun { // a function value; in a fun name :...! {} situation a Var 
 		kind: VarKind, // return type
 		args: (usize, HashMap<EcoString, VarKind>), // argument types + names
-		body: EcoVec<Expr>, 
+		body: Box<Expr>, 
 	},
 	
 	// arithmetics
@@ -110,7 +110,7 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 	while i < tokens.len() {
 		match tokens[i] {
 			Token {kind: TokenKind::Let, ..} => {
-				let decl: EcoVec<Token> = tokens[i..] // let-related chunk
+				let decl: EcoVec<Token> = tokens[i+1..] // let-related chunk
 					.iter()
 					.take_while(|tok| tok.kind != TokenKind::ExprEnd)
 					.cloned()
@@ -120,7 +120,7 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 				res.push(parse_var(decl, false));
 			},
 			Token {kind: TokenKind::Var, ..} => {
-				let decl: EcoVec<Token> = tokens[i..] // var-related chunk
+				let decl: EcoVec<Token> = tokens[i+1..] // var-related chunk
 					.iter()
 					.take_while(|tok| tok.kind != TokenKind::ExprEnd)
 					.cloned()
@@ -145,13 +145,20 @@ pub fn advanced_ast(_ast: EcoVec<Expr>) -> EcoVec<Expr> {
 // AST-RELATED FUNCTIONS
 
 fn parse_var(tokens: EcoVec<Token>, ismut: bool) -> Expr {
-	let parts: EcoVec<_> = tokens
+	use std::any::type_name_of_val;
+
+	let parts = tokens
 		.split(|tok| tok.kind == TokenKind::EqSign)
 		.collect::<EcoVec<_>>();
 	
-	println!("{:#?}", parts);
-	todo!();
 	/*
+	for part in parts {
+		println!("contains:\n{:#?}\n", part);
+		println!("is type:\n{:?}", std::any::type_name_of_val(&part));
+		println!();
+	}
+	*/
+	
 	let (name, kind, value) = (
 		parts
 			.get(0)
@@ -159,35 +166,45 @@ fn parse_var(tokens: EcoVec<Token>, ismut: bool) -> Expr {
 			.get(0), // variable name; obligatory
 		parts
 			.get(0)
+			.expect("malformed edclaration")
 			.get(1), // variable type
 		parts
 			.get(1) // variable value
+			.cloned()
 		);
+	
+	println!(
+		"{:?}\n{:?}\n{:?}\n",
+		&name,
+		&kind,
+		&value
+	);
 
-	if parts[0].len() > 2 {
+	if parts.get(0).unwrap().len() > 2 {
 		panic!("malformed delcaration: {{insert line+column}}");
 	}
 
-	Expr::Var {
+	println!("{:?}", Expr::Var {
 		id: name
 			.unwrap()
 			.literal
 			.clone(),
 		kind: match kind {
-			Some(tok) => to_varkind(tok.literal),
+			Some(tok) => to_varkind(tok.literal.clone()),
 			None => VarKind::Unknown,
 		},
-		val: Box::new(parse_val(value)),
+		val: Box::new(parse_val((*value.unwrap()).into())),
 		ismut,
-	}
-	*/
+	});
+
+	Expr::Num(0)
 }
 
 /// precedence-based parsing
-fn parse_val(content: EcoVec<Token>) -> Expr {
-	if content.len() < 2 {
-		return match &content[0].kind {
-			TokenKind::Word => Expr::Name(content[0].literal.clone()),
+fn parse_val(value: EcoVec<Token>) -> Expr {
+	if value.len() < 2 {
+		return match &value[0].kind {
+			TokenKind::Word => Expr::Name(value[0].literal.clone()),
 			_ => unimplemented!(),
 		};
 	}

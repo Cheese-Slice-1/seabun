@@ -23,7 +23,7 @@ fn main() {
 	let mut lex = TokenKind::lexer(src.as_str());
 	let tokens_spanned: EcoVec<_> = tokenize(&mut lex);
 
-	println!("{:#?}", tokens_spanned);
+	//println!("{:#?}", tokens_spanned);
 
 	let prim_ast = primitive_ast(tokens_spanned);
 }
