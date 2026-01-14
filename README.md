@@ -1,5 +1,5 @@
 ###### everything is in lowercase because of the vibes i want the language to have: unserious, informal and friendly
-###### also i won't take responsibility for the disgust, anger, frustration, etc. you may feel reading an all-lowercase text :Þ
+###### also i won't take responsibility for the disgust, anger, frustration, or anything else you may feel reading this text :Þ
 
 (todo: logo image)
 
@@ -16,7 +16,7 @@ some of these "strange" design choices include:
 - using a period (.) instead of a semicolon (;)
 - using `: ... !` or `: ... ;` instead of `( ... )` when calling or defining functions and lambdas
 - using `{{ ... }}` for defining records
-- using ``
+- using `[ ... ]` for defining tuples
 - making lambdas the default function type (makes for a more natural reading imo)
     let a = fun: x num! { say (x + 64) as str. }.
     let b = fun num: x num! { give x + 65 }.
