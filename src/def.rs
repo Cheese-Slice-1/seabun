@@ -79,10 +79,10 @@ pub enum TokenKind {
 	RBrace, // also ends a statement (block body)
 
 	#[regex(r"[{]{2}", priority=101)]
-	LDblBrace, // composite type start
+	LDblBrace, // record type start
 
 	#[regex(r"[}]{2}", priority=101)]
-	RDblBrace, // composite type end
+	RDblBrace, // record type end
 	
 	#[regex(r"if", priority=60)]
 	If,
@@ -98,6 +98,13 @@ pub enum TokenKind {
 	
 	#[regex(r"[)]", priority=100)]
 	RParen, // nested expr end
+
+	#[regex(r"[(]{2}", priority=101)]
+	LDblParen, // tuple/nested expression start
+	// if ldblparen number % 2 == 0 then: ldblparen number + paren number = nested level
+
+	#[regex(r"[)]{2}", priority=101)]
+	RDblParen, // tuple/nested expression end
 
 	#[regex(r"[+]", priority=100)]
 	Plus,
