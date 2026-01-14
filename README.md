@@ -8,7 +8,7 @@
 
 seabun (lowercase everything!) is a somewhat silly programming language i made for fun :3
 
-i designed it to be as dumb while also somehwt readable as i could make it
+i designed it to be as dumb but also somewhat readable as i could make it
 
 ## design philosophy
 
