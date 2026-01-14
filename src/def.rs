@@ -12,7 +12,7 @@ use logos::{Logos, Lexer, Skip};
 pub struct Token {
 	pub kind: TokenKind,
 	pub literal: EcoString,
-	pub span: std::ops::Range<usize>,
+	pub span: (usize, usize),
 }
 
 /*
@@ -72,58 +72,58 @@ pub enum TokenKind {
 	#[regex(";", priority=100)]
 	RArgs, // ends args section
 
-	#[regex("[{]", priority=100)]
+	#[regex(r"[{]", priority=100)]
 	LBrace, // block start
 
-	#[regex("[}]", priority=100)]
+	#[regex(r"[}]", priority=100)]
 	RBrace, // also ends a statement (block body)
 
-	#[regex("[{]{2}", priority=101)]
+	#[regex(r"[{]{2}", priority=101)]
 	LDblBrace, // composite type start
 
-	#[regex("[}]{2}", priority=101)]
+	#[regex(r"[}]{2}", priority=101)]
 	RDblBrace, // composite type end
 	
-	#[regex("if", priority=60)]
+	#[regex(r"if", priority=60)]
 	If,
 	
-	#[regex("elif", priority=60)]
+	#[regex(r"elif", priority=60)]
 	Elif,
 	
-	#[regex("else", priority=60)]
+	#[regex(r"else", priority=60)]
 	Else,
 	
-	#[regex("[(]", priority=100)]
+	#[regex(r"[(]", priority=100)]
 	LParen, // nested expr start
 	
-	#[regex("[)]", priority=100)]
+	#[regex(r"[)]", priority=100)]
 	RParen, // nested expr end
 
-	#[regex("[+]", priority=100)]
+	#[regex(r"[+]", priority=100)]
 	Plus,
 
-	#[regex("-", priority=100)]
+	#[regex(r"-", priority=100)]
 	Minus,
 
-	#[regex("[*]", priority=100)]
+	#[regex(r"[*]", priority=100)]
 	Star,
 
-	#[regex("/", priority=100)]
+	#[regex(r"/", priority=100)]
 	Slash,
 
-	#[regex(r#"\^"#, priority=100)]
+	#[regex(r"\^", priority=100)]
 	Caret,
 
-	#[regex("%", priority=100)]
+	#[regex(r"%", priority=100)]
 	Percent,
 	
-	#[regex(r#"[^\d\x00-\x1F][a-zA-Z_][\da-zA-Z_]*"#, priority=40)]
+	#[regex(r"[^\d\x00-\x1F][a-zA-Z_][\da-zA-Z_]*", priority=40)]
 	Word, // foo, bar_, _baz, bar2, seabun
 	
-	#[regex(r#"\d+"#, priority=20)]
+	#[regex(r"\d+", priority=20)]
 	Num, // 1, 2, 3, 4
 	
-	#[regex(r#"[\d]*d[\d]+"#, priority=20)]
+	#[regex(r"[\d]*d[\d]+", priority=20)]
 	Dot, // 1d5, d103, -9d9
 	
 	#[regex(r#""([^"\\\x00-\x1F]|\\(["\\bnfrt]|u[a-fA-F0-9]{4}|u[a-fA-F0-9]{2}))*""#, priority=20)]
@@ -133,7 +133,7 @@ pub enum TokenKind {
 	#[regex(r#"'([^'\\\x00-\x1F]|\\(['\\bnfrt]|u[a-fA-F0-9]{4}|u[a-fA-F0-9]{2}))?'"#, priority=20)]
 	Chr, // 'c', '\u6F', '\u1234'
 	
-	#[regex(r#"true|false"#, priority=60)]
+	#[regex(r"true|false", priority=60)]
 	Bln,
 	
 	Error ((usize, usize)),
@@ -155,7 +155,7 @@ pub fn tokenize(lex: &mut Lexer<TokenKind>) -> EcoVec<Token> {
 
 				literal: lex.slice().trim().into(), // literal
 
-				span: el.1 // span
+				span: (el.1.start, el.1.end) // span
 			}
 		})
 		.filter(|el| el.kind != TokenKind::Comment)

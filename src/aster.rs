@@ -6,6 +6,9 @@ use crate::def::{Token, TokenKind};
 /// every possible Seabun expression
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
+	/// empty expression; throws an error in declarations
+	Empty,
+
 	/// integer
 	Num (i64),
 	
@@ -24,7 +27,8 @@ pub enum Expr {
 	/// variable/function/type name
 	Name (EcoString),
 
-	/* COMPUND EXPRESSIONS */
+	/* SIMPLE COMPUND EXPRESSIONS */
+	/* they produce concrete value and kind*/
 
 	/// a single block
 	Block (EcoVec<Expr>),
@@ -38,22 +42,25 @@ pub enum Expr {
 	/// record
 	Rec (HashMap<EcoString, Expr>),
 
-	Fun { // a function value; in a fun name :...! {} situation a Var 
+	/// function literal; like fun: arg num! {}
+	Fun { 
 		kind: VarKind, // return type
 		args: (usize, HashMap<EcoString, VarKind>), // argument types + names
 		body: Box<Expr>, 
 	},
 	
-	// arithmetics
-	Add (Box<Expr>, Box<Expr>), // x+y
-	Sub (Box<Expr>, Box<Expr>), // x-y
-	Mul (Box<Expr>, Box<Expr>), // x*y
-	Div (Box<Expr>, Box<Expr>), // x/y
-	Pow (Box<Expr>, Box<Expr>), // x^y
-	Mod (Box<Expr>, Box<Expr>), // x%y
+	/// arithmetic operation
+	Op { //x+y, x-y, x*y, x/y, x^x, x%x
+		left: Box<Expr>,
+		right:Box<Expr>,
+		operator: char,
+	},
+
+	/* COMPLEX COMPOUND EXPRESSIONS */
+	/* they produce an Expr::Empty value and a VarType::Unknown kind (tl;dr: can't be values) */
 	
 	/// represents a new push or allocation
-	Var { // e.g. let s = "". -> Var {id: "s".into(), kind: VarKind::Str, val: Box::new(Expr::Str("a".to_owned())), ismut: false}
+	Decl { // e.g. let s = "". -> Decl {id: "s".into(), kind: VarKind::Str, val: Box::new(Expr::Str("a".to_owned())), ismut: false}
 		id: EcoString,
 		kind: VarKind,
 		val: Box<Expr>,
@@ -61,7 +68,7 @@ pub enum Expr {
 	},
 
 	/// represents a change in an already existing variable
-	ReVar { // e.g. 
+	ReDecl { // e.g. 
 		id: EcoString,
 		kind: VarKind,
 		val: Box<Expr>,
@@ -78,7 +85,7 @@ pub enum VarKind {
 	Chr,
 	Bln,
 	Arr (Box<VarKind>, usize),
-	Tup (EcoVec<VarKind>, usize),
+	Tup (EcoVec<VarKind>), // length is the number of varkinds
 
 	// records may only differ in property names.
 	// as they are part of the type itself, it's easy to compare them and cast them
@@ -99,37 +106,52 @@ pub enum VarKind {
 	// same principle for functions.
 	// as the arguments and return type are part of the type, you can cast them
 	Fun (HashMap<EcoString, VarKind>, Box<VarKind>),
-	Unknown, // resolves when making AST; if not throws error
+
+	// these is the equivalent of a rust unit
+	Unit,
+
+	// resolves in the AST's second pass; if not, throws error
+	Unknown,
 }
 
 /// creates a very primitive ast
 pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
-	let mut i: usize = 0;
-	let mut res: EcoVec<Expr> = EcoVec::new();
+	let mut i: usize = 0; // boring index
+	let mut res: EcoVec<Expr> = EcoVec::new(); // the resulting AST (nodes)
 
 	while i < tokens.len() {
 		match tokens[i] {
-			Token {kind: TokenKind::Let, ..} => {
-				let decl: EcoVec<Token> = tokens[i+1..] // let-related chunk
+			/* DECLARATIONS */
+			Token {kind: TokenKind::Let, ref literal, ..} | Token {kind: TokenKind::Var, ref literal, ..} => {
+				let decl: EcoVec<Token> = tokens[i..] // let-related chunk
 					.iter()
 					.take_while(|tok| tok.kind != TokenKind::ExprEnd)
 					.cloned()
 					.collect::<EcoVec<Token>>();
 				
 				i += decl.len() - 1;
-				res.push(parse_var(decl, false));
+
+				res.push(parse_decl(
+					decl, // tokens that conform th declaration
+
+					// always "let" or "var". nothing else should be possible
+					// if there's something else blame it on me or the lexer
+					// cuz lil bro shouldn't be doing that...
+					match &literal[..] {
+						"let" => false,	// ismut = false
+						"var" => true,	// ismut = true
+						_ => panic!("this shouldn't happen!!"),
+					},
+				));
 			},
-			Token {kind: TokenKind::Var, ..} => {
-				let decl: EcoVec<Token> = tokens[i+1..] // var-related chunk
-					.iter()
-					.take_while(|tok| tok.kind != TokenKind::ExprEnd)
-					.cloned()
-					.collect::<EcoVec<Token>>();
-				
-				i += decl.len() - 1;
-				res.push(parse_var(decl, true));
+			
+			/* ERROR */
+			Token {kind: TokenKind::Error(linecol), literal, ..} => {
+				unknown_tok(literal.clone, linecol);
 			},
-			_ => { unimplemented!(); },
+
+			/* NOTHING */
+			_ => {}
 		}
 
 		i += 1;
@@ -144,10 +166,16 @@ pub fn advanced_ast(_ast: EcoVec<Expr>) -> EcoVec<Expr> {
 
 // AST-RELATED FUNCTIONS
 
-fn parse_var(tokens: EcoVec<Token>, ismut: bool) -> Expr {
-	use std::any::type_name_of_val;
+fn parse_decl(tokens: EcoVec<Token>, ismut: bool) -> Expr {
+	//use std::any::type_name_of_val;
 
+	// span the error occupies (no shit sherlock)
+	let errspan = (tokens[0].span.0, tokens[tokens.len()-1].span.1);
+
+	// "parts" are the declaration's sides
 	let parts = tokens
+		.get(1..tokens.len())
+		.unwrap_or_else(|| {malformed("declaration", errspan);})
 		.split(|tok| tok.kind == TokenKind::EqSign)
 		.collect::<EcoVec<_>>();
 	
@@ -158,33 +186,28 @@ fn parse_var(tokens: EcoVec<Token>, ismut: bool) -> Expr {
 		println!();
 	}
 	*/
+
+	if parts.get(0).unwrap().len() > 2 || parts.get(0).unwrap().is_empty() {
+		malformed("declaration", errspan);
+	}
 	
 	let (name, kind, value) = (
 		parts
-			.get(0)
-			.expect("malformed edclaration")
+			.get(0) // parts[0] contains both name and type
+			.unwrap_or_else(|| malformed("declaration", errspan))
 			.get(0), // variable name; obligatory
 		parts
 			.get(0)
-			.expect("malformed edclaration")
+			.unwrap_or_else(|| malformed("declaration", errspan))
 			.get(1), // variable type
 		parts
 			.get(1) // variable value
 			.cloned()
 		);
 	
-	println!(
-		"{:?}\n{:?}\n{:?}\n",
-		&name,
-		&kind,
-		&value
-	);
-
-	if parts.get(0).unwrap().len() > 2 {
-		panic!("malformed delcaration: {{insert line+column}}");
-	}
-
-	println!("{:?}", Expr::Var {
+	//println!("{:?}\n{:?}\n{:#?}\n", &name, &kind, &value);
+	
+	Expr::Decl {
 		id: name
 			.unwrap()
 			.literal
@@ -193,23 +216,55 @@ fn parse_var(tokens: EcoVec<Token>, ismut: bool) -> Expr {
 			Some(tok) => to_varkind(tok.literal.clone()),
 			None => VarKind::Unknown,
 		},
-		val: Box::new(parse_val((*value.unwrap()).into())),
+		val: Box::new(parse_val(
+			(*value.unwrap()).into(),
+			errspan
+		)),
 		ismut,
-	});
-
-	Expr::Num(0)
+	}
 }
 
-/// precedence-based parsing
-fn parse_val(value: EcoVec<Token>) -> Expr {
+/// precedence-based non-composite expression parser
+fn parse_val(value: EcoVec<Token>, errspan: (usize, usize)) -> Expr {
+	let mut ret = Expr::Empty;
+
 	if value.len() < 2 {
-		return match &value[0].kind {
+		return match value.clone()[0].kind { // kind (Expr) isn't Cow (clone-on-write)
+			// a single integer
 			TokenKind::Word => Expr::Name(value[0].literal.clone()),
+			TokenKind::Num => Expr::Num (
+				value[0]
+					.literal
+					.parse::<i64>()
+					.unwrap_or_else(|_| malformed("declaration", errspan))
+			),
+
+			// a single float
+			TokenKind::Dot => Expr::Dot (
+				value[0]
+					.literal
+					.replace("d", ".")
+					.parse::<f64>()
+					.unwrap_or_else(|_| malformed("declaration", errspan))
+			),
+
 			_ => unimplemented!(),
 		};
 	}
 
+	let mut i: usize = 0;
+
+	/*
+		ideas:
+			- parse tokens as if they were characters
+			- no operator precedence; pure LtR with precedence for parentheses
+			- LParen => recursive parse_eval
+			- RParen => forcibly return from parse_eval
+	*/
+
 	todo!();
+
+	ret
 }
 
 pub fn to_varkind(lit: EcoString) -> VarKind {
@@ -222,6 +277,25 @@ pub fn to_varkind(lit: EcoString) -> VarKind {
 		"bln" => VarKind::Bln,
 		_ => VarKind::Unknown, // non-primitive (like tuples, arrays and records)
 	}
+}
+
+fn malformed<'a>(exprkind: &'a str, span: (usize, usize)) -> ! {
+	println!("malformed {exprkind}: {:?}", span.0..span.1);
+	std::process::exit(1)
+}
+
+fn unknown_tok(tok: EcoString, span: (usize, usize)) -> ! {
+	println!("unknown token \"{tok}\" at line {:?}", span.0..span.1);
+	std::process::exit(1)
+}
+
+fn check(expr: Expr) -> Result<Expr, ()> {
+	if expr == Expr::Empty {
+		println!("");
+		return Err(());
+	}
+
+	Ok(expr)
 }
 
 /*

@@ -1,1 +1,13 @@
-let a num = 0+-1.
+# goal 0: declarations
+let a = 0.
+var b = 1.
+
+#goal 1: simple compound expressions as a value
+let c = 1 + 2.
+
+# goal: parse blocks
+{
+
+}
+# goal: parse functions
+#let c = fun: x num! x+1.
