@@ -22,8 +22,8 @@ some of these "strange" design choices include:
   - `let name = fun: arg_name type, ...! body`
   - `let name = fun type: arg type, ...! body`
   - `name: param1, ...!.`
-- using `{{ ... }}` for defining records
-- using `(( ..., ... ))` for defining tuples
+- using a similar syntax to functions (`rec: ... !`) for defining records
+- using `{{ ..., ... }}` for defining tuples
 - giving default values to all primitive types (and therefore to all user-defined types)
 - not being able to define methods for types (like class methods in OOP or `impl` statement in rust")
 

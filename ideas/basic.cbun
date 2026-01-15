@@ -1,9 +1,20 @@
 # goal 0: declarations
-let a = 0.
-var b = 1.
+/*
+
+and
+
+comments
+
+heh
+
+*/
+
+let a = 1.
+var b = 2.
 
 #goal 1: simple compound expressions as a value
 let c = 1 + 2.
+let d = 1 + 2 - 3. # = 0; seabun has a LtR approach with operations
 
 # goal: parse blocks
 {

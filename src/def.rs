@@ -34,8 +34,13 @@ pub struct Token {
 	Skip
 }))]
 pub enum TokenKind {
-	#[regex(r#"[#][^\x00-\x1F]+?"#, priority=110)]
-	Comment,
+	/* SYMBOL-BASED TOKENS */
+
+	#[regex(r#"[#][^\x00-\x1F]*"#, priority=110)]
+	Comment, // #a line comment
+
+	#[regex(r#"([/][*]){1}([^\x00-\x09\x0C-\x1F]|\n)*([*][/]){1}"#, priority=100)]
+	EnclosedComment, // /* an enclosed comment */
 	
 	#[regex(r#"#![^\x00-\x1F]+?"#, priority=120)]
 	Doc,
@@ -46,65 +51,41 @@ pub enum TokenKind {
 	#[regex(",", priority=100)]
 	Comma,
 
-	// #[regex("->", priority=100)]
-	#[regex("as", priority=60)]
-	As, // casting
-	
-	#[regex("let", priority=60)]
-	Let, // immutable variable declaration
-
-	#[regex("var", priority=60)]
-	Var, // mutable variable declaration
-
-	#[regex("def", priority=60)]
-	Def, // type definition
-
 	#[regex("=", priority=100)]
 	EqSign,
-	
-	#[regex("fun", priority=60)]
-	Fun, // function declaration
-	
+
 	#[regex(":", priority=100)]
-	LArgs, // separates name from args
+	Colon, // separates name from parameter/argument list
 	
 	#[regex("[!]", priority=100)]
+	Bang, // ends parameter/argument list
+
 	#[regex(";", priority=100)]
-	RArgs, // ends args section
+	Semicolon, // also ends parameter/argument list
 
-	#[regex(r"[{]", priority=100)]
-	LBrace, // block start
-
-	#[regex(r"[}]", priority=100)]
-	RBrace, // also ends a statement (block body)
-
-	#[regex(r"[{]{2}", priority=101)]
-	LDblBrace, // record type start
-
-	#[regex(r"[}]{2}", priority=101)]
-	RDblBrace, // record type end
-	
-	#[regex(r"if", priority=60)]
-	If,
-	
-	#[regex(r"elif", priority=60)]
-	Elif,
-	
-	#[regex(r"else", priority=60)]
-	Else,
-	
 	#[regex(r"[(]", priority=100)]
 	LParen, // nested expr start
 	
 	#[regex(r"[)]", priority=100)]
 	RParen, // nested expr end
 
-	#[regex(r"[(]{2}", priority=101)]
-	LDblParen, // tuple/nested expression start
-	// if ldblparen number % 2 == 0 then: ldblparen number + paren number = nested level
+	#[regex(r"\[", priority=100)]
+	LBracket, // nested expr start
+	
+	#[regex(r"\]", priority=100)]
+	Rbracket, // nested expr end
 
-	#[regex(r"[)]{2}", priority=101)]
-	RDblParen, // tuple/nested expression end
+	#[regex(r"[{]", priority=100)]
+	LBrace, // block start
+
+	#[regex(r"[}]", priority=100)]
+	RBrace, // block end
+
+	#[regex(r"[{]{2}", priority=101)]
+	LDblBrace, // tuple literal start
+
+	#[regex(r"[}]{2}", priority=101)]
+	RDblBrace, // tuple literal end
 
 	#[regex(r"[+]", priority=100)]
 	Plus,
@@ -123,6 +104,38 @@ pub enum TokenKind {
 
 	#[regex(r"%", priority=100)]
 	Percent,
+
+	/* KEYWORS-BASED TOKENS */
+
+	// #[regex("->", priority=100)]
+	#[regex("as", priority=60)]
+	As, // casting
+	
+	#[regex("let", priority=60)]
+	Let, // immutable variable declaration
+
+	#[regex("var", priority=60)]
+	Var, // mutable variable declaration
+
+	#[regex("def", priority=60)]
+	Def, // type definition
+	
+	#[regex("fun", priority=60)]
+	Fun, // function literal; fun name: parameter type, ...!
+
+	#[regex("rec", priority=60)]
+	Rec, // record literal; rec: field type, ...!
+	
+	#[regex(r"if", priority=60)]
+	If,
+	
+	#[regex(r"elif", priority=60)]
+	Elif,
+	
+	#[regex(r"else", priority=60)]
+	Else,
+
+	/* NON-KEYWORD-BASED TOKENS */
 	
 	#[regex(r"[^\d\x00-\x1F][a-zA-Z_][\da-zA-Z_]*", priority=40)]
 	Word, // foo, bar_, _baz, bar2, seabun
@@ -143,6 +156,8 @@ pub enum TokenKind {
 	#[regex(r"true|false", priority=60)]
 	Bln,
 	
+	/* ERROR TYPE REPRESENTING (line, column) */
+
 	Error ((usize, usize)),
 }
 
@@ -151,6 +166,9 @@ pub fn tokenize(lex: &mut Lexer<TokenKind>) -> EcoVec<Token> {
 		.spanned() // gives (kind, span)
 		.map(|el| { // el = one (kind, span) pair
 			lex.next(); // advance lexer to get the slices
+
+			//println!("token:\n{}\n----------", lex.slice()); // visualize current slice
+
 			Token {
 				kind: el.0.unwrap_or_else( // token kind start
 					|_| {
@@ -165,6 +183,6 @@ pub fn tokenize(lex: &mut Lexer<TokenKind>) -> EcoVec<Token> {
 				span: (el.1.start, el.1.end) // span
 			}
 		})
-		.filter(|el| el.kind != TokenKind::Comment)
+		.filter(|el| { el.kind != TokenKind::Comment && el.kind != TokenKind::EnclosedComment })
 		.collect()
 }

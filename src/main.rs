@@ -5,7 +5,7 @@ mod def;
 use def::{tokenize, TokenKind};
 
 mod aster;
-use aster::{Expr, VarKind, primitive_ast};
+use aster::{primitive_ast};
 
 use logos::Logos;
 

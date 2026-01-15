@@ -7,7 +7,7 @@ let foo = fun: a num, b dot! {
 	say: "so...\n"!.
 	say: "a is ", a as str, "\n"!.
 	sayln: "b is ", b as str!. # automatic new line
-}
+}.
 
 let bar = fun str: a num, b dot! {
 	if a > b {
@@ -35,42 +35,42 @@ let dotwice = fun: f fun: num;, x num; {
 # use whichever you want
 
 # record called user with named fields
-# doc comment
-def person = rec{{
+#! doc comment
+def person rec:
 	name str,
 	surnames []str,
 	age num,
 	likes []str,
-	hates []str
-}}.
+	hates []str!.
 
 # named tuple called rgb
-# actually a record with unnamed fields
-def rgb = tup{{num, num, num}}.
+def rgb {{num, num, num}}.
 
-# no explicit entry point
+# an entry block is also an expression, it requires a dot
+entry {
+	let first num = 10.
+	let second dot = 1d5. # d stands for dot
 
-let first num = 10.
-let second dot = 1d5. # d stands for dot
+	foo: first, second!.
 
-foo: first, second!.
+	let baz str = bar: first, second!.
 
-let baz str = bar: first, second!.
+	let fibb5 = fibb: 5!.
 
-let fibb5 = fibb: 5!.
+	# named parameters are optional, you can use positional
+	# ones instead
+	let johndoe person = rec:
+		name = "John",
+		surnames = ["Doe", "Smith"],
+		age = 20,
+		likes = ["icecream", "chocolate", "programming"],
+		hates = ["bugs", "brainrot", ""]!.
 
-# named parameters are optional, you can use positional
-# ones instead
-let johndoe person = person{{
-	name = "John",
-	surnames = ["Doe", "Smith"],
-	age = 20,
-	likes = ["icecream", "chocolate", "programming"],
-	hates = ["bugs", "brainrot", ""]}}.
+	# instantiation of tuple types
+	let grassygreen rgb = {{197, 255, 0}}.
+	let puregreen rgb = {{0x00, 0xFF, 0x00}}.
 
-# instantiation of tuple-like types
-let grassygreen rgb = rgb{{197, 255, 0}}.
-let puregreen = rgb{{0x00, 0xFF, 0x00}}.
-
-dotwice:
-	fun: a num! { sayln: a!. }!. # heres a closure
+	# a closure argument; here ";" is also the same as "!"
+	dotwice:
+		fun: a num; { sayln: a!. }!.
+}.

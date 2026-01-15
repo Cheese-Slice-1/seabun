@@ -6,6 +6,9 @@ use crate::def::{Token, TokenKind};
 /// every possible Seabun expression
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
+	/* SIMPLE EXPRESSIONS */
+	// these consist of a single non-self-referential value
+
 	/// empty expression; throws an error in declarations
 	Empty,
 
@@ -53,7 +56,7 @@ pub enum Expr {
 	Op { //x+y, x-y, x*y, x/y, x^x, x%x
 		left: Box<Expr>,
 		right:Box<Expr>,
-		operator: char,
+		op: char,
 	},
 
 	/* COMPLEX COMPOUND EXPRESSIONS */
@@ -92,15 +95,14 @@ pub enum VarKind {
 	Rec (HashMap<EcoString, VarKind>),
 	/*
 		an example would be:
-			def rec_a = {{
+			def rec_a = rec:
 				foo str,
-				bar num
-			}}.
-			def re_b = {{
+				bar num!.
+			def re_b = rec:
 				foo str,
-				bar num
-			}}.
-			let something = rec_a {{}}
+				bar num!.
+			
+			let something = rec_a!.
 	*/
 
 	// same principle for functions.
@@ -120,9 +122,9 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 	let mut res: EcoVec<Expr> = EcoVec::new(); // the resulting AST (nodes)
 
 	while i < tokens.len() {
-		match tokens[i] {
+		match &tokens[i] {
 			/* DECLARATIONS */
-			Token {kind: TokenKind::Let, ref literal, ..} | Token {kind: TokenKind::Var, ref literal, ..} => {
+			Token {kind: TokenKind::Let, literal, ..} | Token {kind: TokenKind::Var, literal, ..} => {
 				let decl: EcoVec<Token> = tokens[i..] // let-related chunk
 					.iter()
 					.take_while(|tok| tok.kind != TokenKind::ExprEnd)
@@ -147,12 +149,15 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 			
 			/* ERROR */
 			Token {kind: TokenKind::Error(linecol), literal, ..} => {
-				unknown_tok(literal.clone, linecol);
+				println!("unknown token \"{literal}\" at line {}:{}", linecol.0, linecol.1);
+				std::process::exit(1)
 			},
 
 			/* NOTHING */
 			_ => {}
 		}
+
+		println!("{:#?}\n", res.last());
 
 		i += 1;
 	}
@@ -224,35 +229,54 @@ fn parse_decl(tokens: EcoVec<Token>, ismut: bool) -> Expr {
 	}
 }
 
+/* SIMPLE EXPRESSIONS GENERATORS */
+
 /// precedence-based non-composite expression parser
 fn parse_val(value: EcoVec<Token>, errspan: (usize, usize)) -> Expr {
-	let mut ret = Expr::Empty;
+	let mut res = Expr::Empty;
 
 	if value.len() < 2 {
-		return match value.clone()[0].kind { // kind (Expr) isn't Cow (clone-on-write)
+		return match &value[0] { // kind (Expr) isn't Cow (clone-on-write)
+			// a name
+			Token {kind: TokenKind::Word, literal, ..} => Expr::Name(literal.clone()),
+
 			// a single integer
-			TokenKind::Word => Expr::Name(value[0].literal.clone()),
-			TokenKind::Num => Expr::Num (
-				value[0]
-					.literal
+			Token {kind: TokenKind::Num, literal, ..} => Expr::Num (
+				literal
 					.parse::<i64>()
 					.unwrap_or_else(|_| malformed("declaration", errspan))
 			),
 
 			// a single float
-			TokenKind::Dot => Expr::Dot (
-				value[0]
-					.literal
+			Token {kind: TokenKind::Dot, literal, ..} => Expr::Dot (
+				literal
 					.replace("d", ".")
 					.parse::<f64>()
 					.unwrap_or_else(|_| malformed("declaration", errspan))
 			),
 
-			_ => unimplemented!(),
+			Token {kind: TokenKind::RParen, ..} => res,
+
+			_ => todo!(),
 		};
 	}
 
 	let mut i: usize = 0;
+
+	while i < value.len() {
+		match value[i] {
+			// a parenthesized expression
+			Token {kind: TokenKind::LParen, ..} => {
+				todo!();
+			},
+
+			Token {kind: TokenKind::Word, ref literal, ..} => res = Expr::Name(literal.clone()),
+
+			_ => todo!(),
+		}
+
+		i += 1;
+	}
 
 	/*
 		ideas:
@@ -264,8 +288,10 @@ fn parse_val(value: EcoVec<Token>, errspan: (usize, usize)) -> Expr {
 
 	todo!();
 
-	ret
+	res
 }
+
+/* UTILS */
 
 pub fn to_varkind(lit: EcoString) -> VarKind {
 	// predefined literals
@@ -301,50 +327,34 @@ fn check(expr: Expr) -> Result<Expr, ()> {
 /*
 	implementation should turn (simplified):
 	[
-		Let _ _
-		Name "x" _
-		EqSign _ _
-		Num "5" _
-		Plus _ _
-		Num "5" _
-		ExprEnd _ _
+		Token {kind: TokenKind::Let, ..},
+		Token {kind: TokenKind::Name, literal: "x".into(), ..},
+		Token {kind: TokenKind::EqSign, ..}
+		Token {kind: TokenKind::Num, literal: "5".into(), ..},
+		Token {kind: TokenKind::Plus, ..}
+		Token {kind: TokenKind::Num, literal: "5".into(), ..},
+		Token {kind: TokenKind::ExprEnd, ..}
 	]
 	into:
 	[
-		Var {
+		Expr::Decl {
 			id: "x".into(),
 			kind: VarKind::Unknown,
-			val: Box::new(Expr::Add(
-				Box::new(Expr::Num(5)),
-				Box::new(Expr::Num(5)),
-			)),
+			val: Box::new(Expr::Op {
+				left: Box::new(Expr::Num(5)),
+				right: Box::new(Expr::Num(5)),
+				op: '+',
+			}),
 			ismut: false,
 		},
 	]
 	which would then resolve to:
 	[
-		Expr::Var{
+		Expr::Decl {
 			id: "x".into(),
 			kind: VarKind::Num,
 			val: Box::new(Expr::Num(10)),
 			ismut: false,
 		},
 	]
-*/
-
-/*
-	IDEA:
-	impl would slice token source by the ExprEnds (no keep)
-	and LBrace and RBraces (keeping them in body)
-		For example:
-		[
-			Token::Let,
-			Token::Name("x"),
-			Token::EqSign,
-			Token::Num(5),
-			Token::ExprEnd,
-			Token::If,
-			Token::Name("x"),
-			Token::DblEqSign
-		]
 */
