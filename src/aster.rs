@@ -244,7 +244,7 @@ fn parse_val(value: EcoVec<Token>, errspan: (usize, usize)) -> Expr {
 			Token {kind: TokenKind::Num, literal, ..} => Expr::Num (
 				literal
 					.parse::<i64>()
-					.unwrap_or_else(|_| malformed("declaration", errspan))
+					.unwrap_or_else(|_| malformed("num literal", errspan))
 			),
 
 			// a single float
@@ -252,7 +252,15 @@ fn parse_val(value: EcoVec<Token>, errspan: (usize, usize)) -> Expr {
 				literal
 					.replace("d", ".")
 					.parse::<f64>()
-					.unwrap_or_else(|_| malformed("declaration", errspan))
+					.unwrap_or_else(|_| malformed("dot literal", errspan))
+			),
+
+			Token {kind: TokenKind::Bln, literal, ..} => Expr::Bln (
+				match &literal[..] {
+					"yes" | "true" => true,
+					"no" | "false" => false,
+					_ => malformed("bln literal", errspan)
+				}
 			),
 
 			Token {kind: TokenKind::RParen, ..} => res,
