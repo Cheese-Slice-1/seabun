@@ -147,13 +147,13 @@ pub enum TokenKind {
 	Str, // "hola", "HOLA", "HoLa123", "\""
 	
 	// ONE character or escape
-	#[regex(r#"'([^'\\\x00-\x1F]|\\(['\\bnfrt]|u[a-fA-F0-9]{4}|u[a-fA-F0-9]{2}))?'"#, priority=40)]
-	Chr, // 'c', '\u6F', '\u1234'
+	#[regex(r#"'([^'\\\x00-\x1F]|\\(['\\bnfrt]|u[a-fA-F0-9]{2}))?'"#, priority=40)]
+	Chr, // 'c', '\u6F', '\\', '\'', '\n'
 	
 	#[regex("true|false|yes|no", priority=40)]
 	Bln, // true, false
 
-	#[regex(r"[^\d\x00-\x20.][^\x00-\x20.]*", priority=20)]
+	#[regex(r"[^\d\x00-\x1F][^\x00-\x20]*", priority=20)]
 	Word, // foo, bar_, _baz, bar2, seabun
 	
 	/* ERROR TYPE REPRESENTING (line, column) */

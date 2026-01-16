@@ -166,7 +166,7 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 }
 
 pub fn advanced_ast(_ast: EcoVec<Expr>) -> EcoVec<Expr> {
-	todo!();
+	todo!(); // clean up AST and resolve datatypes, expressions, etc. here
 }
 
 // AST-RELATED FUNCTIONS
@@ -241,31 +241,43 @@ fn parse_val(value: EcoVec<Token>, errpos: (usize, usize)) -> Expr {
 			Token {kind: TokenKind::Word, literal, ..} => Expr::Name(literal.clone()),
 
 			// a single integer
-			Token {kind: TokenKind::Num, literal, ..} => Expr::Num (
+			Token {kind: TokenKind::Num, literal, pos} => Expr::Num (
 				literal
 					.parse::<i64>()
-					.unwrap_or_else(|_| malformed("num literal", errpos))
+					.unwrap_or_else(|_| malformed("num literal", *pos))
 			),
 
 			// a single float
-			Token {kind: TokenKind::Dot, literal, ..} => Expr::Dot (
+			Token {kind: TokenKind::Dot, literal, pos} => Expr::Dot (
 				literal
 					.replace("d", ".")
 					.parse::<f64>()
-					.unwrap_or_else(|_| malformed("dot literal", errpos))
+					.unwrap_or_else(|_| malformed("dot literal", *pos))
 			),
 
-			Token {kind: TokenKind::Bln, literal, ..} => Expr::Bln (
+			Token {kind: TokenKind::Bln, literal, pos} => Expr::Bln (
 				match &literal[..] {
 					"true" | "yes" => true,
 					"false" | "no" => false,
-					_ => malformed("bln literal", errpos),
+					_ => malformed("bln literal", *pos),
 				}
 			),
 
-			Token {kind: TokenKind::RParen, ..} => res,
+			Token {kind: TokenKind::Chr, literal, pos} => {
+				let raw = literal.get(1..literal.len())
 
-			_ => todo!(),
+				todo!();
+				/*
+				TODO:
+					- convert "'_'"" to char '_'
+					- convert "'\_'" to char '\_'
+					- convert "'\uXX'" to char '\uXX'
+				*/
+			},
+
+			Token {kind: TokenKind::RParen, ..} => res,
+			
+			_ => malformed("expression", errpos), // TODO: parse other single-token expressions
 		};
 	}
 
@@ -274,8 +286,17 @@ fn parse_val(value: EcoVec<Token>, errpos: (usize, usize)) -> Expr {
 	while i < value.len() {
 		match value[i] {
 			// a parenthesized expression
-			Token {kind: TokenKind::LParen, ..} => {
-				todo!();
+			Token {kind: TokenKind::LParen, pos, ..} => {
+				let parenval = parse_val(
+					value[i..] // sub tokens to parse
+						.iter()
+						.take_while(|tok| tok.kind != TokenKind::ExprEnd)
+						.cloned()
+						.collect::<EcoVec<Token>>(),
+					pos,
+				);
+
+				todo!(); // parse_val on everything until a ")"
 			},
 
 			Token {kind: TokenKind::Word, ref literal, ..} => res = Expr::Name(literal.clone()),
@@ -290,8 +311,8 @@ fn parse_val(value: EcoVec<Token>, errpos: (usize, usize)) -> Expr {
 		ideas:
 			- parse tokens as if they were characters
 			- no operator precedence; pure LtR with precedence for parentheses
-			- LParen => recursive parse_eval
-			- RParen => forcibly return from parse_eval
+			- LParen => recursive parse_val
+			- RParen => forcibly return from parse_val
 	*/
 
 	todo!();
