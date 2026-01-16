@@ -148,8 +148,8 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 			},
 			
 			/* ERROR */
-			Token {kind: TokenKind::Error(linecol), literal, ..} => {
-				println!("unknown token \"{literal}\" at line {}:{}", linecol.0, linecol.1);
+			Token {kind: TokenKind::Error, literal, pos, ..} => {
+				println!("unknown token \"{literal}\" at line {}:{}", pos.0, pos.1);
 				std::process::exit(1)
 			},
 
@@ -174,13 +174,13 @@ pub fn advanced_ast(_ast: EcoVec<Expr>) -> EcoVec<Expr> {
 fn parse_decl(tokens: EcoVec<Token>, ismut: bool) -> Expr {
 	//use std::any::type_name_of_val;
 
-	// span the error occupies (no shit sherlock)
-	let errspan = (tokens[0].span.0, tokens[tokens.len()-1].span.1);
+	// line and column of malformed/unknown token
+	let errpos = tokens[0].pos;
 
 	// "parts" are the declaration's sides
 	let parts = tokens
 		.get(1..tokens.len())
-		.unwrap_or_else(|| {malformed("declaration", errspan);})
+		.unwrap_or_else(|| {malformed("declaration", errpos);})
 		.split(|tok| tok.kind == TokenKind::EqSign)
 		.collect::<EcoVec<_>>();
 	
@@ -193,17 +193,17 @@ fn parse_decl(tokens: EcoVec<Token>, ismut: bool) -> Expr {
 	*/
 
 	if parts.get(0).unwrap().len() > 2 || parts.get(0).unwrap().is_empty() {
-		malformed("declaration", errspan);
+		malformed("declaration", errpos);
 	}
 	
 	let (name, kind, value) = (
 		parts
 			.get(0) // parts[0] contains both name and type
-			.unwrap_or_else(|| malformed("declaration", errspan))
+			.unwrap_or_else(|| malformed("declaration", errpos))
 			.get(0), // variable name; obligatory
 		parts
 			.get(0)
-			.unwrap_or_else(|| malformed("declaration", errspan))
+			.unwrap_or_else(|| malformed("declaration", errpos))
 			.get(1), // variable type
 		parts
 			.get(1) // variable value
@@ -223,7 +223,7 @@ fn parse_decl(tokens: EcoVec<Token>, ismut: bool) -> Expr {
 		},
 		val: Box::new(parse_val(
 			(*value.unwrap()).into(),
-			errspan
+			errpos
 		)),
 		ismut,
 	}
@@ -232,7 +232,7 @@ fn parse_decl(tokens: EcoVec<Token>, ismut: bool) -> Expr {
 /* SIMPLE EXPRESSIONS GENERATORS */
 
 /// precedence-based non-composite expression parser
-fn parse_val(value: EcoVec<Token>, errspan: (usize, usize)) -> Expr {
+fn parse_val(value: EcoVec<Token>, errpos: (usize, usize)) -> Expr {
 	let mut res = Expr::Empty;
 
 	if value.len() < 2 {
@@ -244,7 +244,7 @@ fn parse_val(value: EcoVec<Token>, errspan: (usize, usize)) -> Expr {
 			Token {kind: TokenKind::Num, literal, ..} => Expr::Num (
 				literal
 					.parse::<i64>()
-					.unwrap_or_else(|_| malformed("num literal", errspan))
+					.unwrap_or_else(|_| malformed("num literal", errpos))
 			),
 
 			// a single float
@@ -252,14 +252,14 @@ fn parse_val(value: EcoVec<Token>, errspan: (usize, usize)) -> Expr {
 				literal
 					.replace("d", ".")
 					.parse::<f64>()
-					.unwrap_or_else(|_| malformed("dot literal", errspan))
+					.unwrap_or_else(|_| malformed("dot literal", errpos))
 			),
 
 			Token {kind: TokenKind::Bln, literal, ..} => Expr::Bln (
 				match &literal[..] {
-					"yes" | "true" => true,
-					"no" | "false" => false,
-					_ => malformed("bln literal", errspan)
+					"true" | "yes" => true,
+					"false" | "no" => false,
+					_ => malformed("bln literal", errpos),
 				}
 			),
 
@@ -313,15 +313,17 @@ pub fn to_varkind(lit: EcoString) -> VarKind {
 	}
 }
 
-fn malformed<'a>(exprkind: &'a str, span: (usize, usize)) -> ! {
-	println!("malformed {exprkind}: {:?}", span.0..span.1);
+fn malformed<'a>(exprkind: &'a str, pos: (usize, usize)) -> ! {
+	println!("malformed {exprkind}: {}:{}", pos.0, pos.1);
 	std::process::exit(1)
 }
 
-fn unknown_tok(tok: EcoString, span: (usize, usize)) -> ! {
-	println!("unknown token \"{tok}\" at line {:?}", span.0..span.1);
+/*
+fn unknown_tok(tok: EcoString, pos: (usize, usize)) -> ! {
+	println!("unknown token \"{tok}\" at {}:{}", pos.0, pos.1);
 	std::process::exit(1)
 }
+*/
 
 fn check(expr: Expr) -> Result<Expr, ()> {
 	if expr == Expr::Empty {

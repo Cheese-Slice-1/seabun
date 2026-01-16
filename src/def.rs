@@ -10,9 +10,9 @@ use logos::{Logos, Lexer, Skip};
 /// a seabun token; contains all necessary information
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {
-	pub kind: TokenKind,
-	pub literal: EcoString,
-	pub span: (usize, usize),
+	pub kind: TokenKind, // what it is
+	pub literal: EcoString, // raw form
+	pub pos: (usize, usize), // position
 }
 
 /*
@@ -39,13 +39,13 @@ pub enum TokenKind {
 	#[regex(r#"[#][^\x00-\x1F]*"#, priority=110)]
 	Comment, // #a line comment
 
-	#[regex(r#"([/][*]){1}([^\x00-\x09\x0C-\x1F]|\n)*([*][/]){1}"#, priority=100)]
+	#[regex(r#"/[*]([^*\x00]|([*][^/\x00]))*[*]/"#, priority=100)]
 	EnclosedComment, // /* an enclosed comment */
 	
-	#[regex(r#"#![^\x00-\x1F]+?"#, priority=120)]
+	#[regex(r"#![^\x00-\x1F]+?", priority=120)]
 	Doc,
 
-	#[regex(r#"\."#, priority=100)]
+	#[regex("[.]", priority=100)]
 	ExprEnd, // end of an expression
 
 	#[regex(",", priority=100)]
@@ -135,30 +135,6 @@ pub enum TokenKind {
 	#[regex("else", priority=60)]
 	Else,
 	
-<<<<<<< Updated upstream
-	#[regex(r"(true|false){1}", priority=70)]
-	Bln,
-=======
-	#[regex(r"\d+", priority=40)]
-	Num, // 1, 2, 3, 4
-	
-	#[regex(r"[\d]*d[\d]+", priority=40)]
-	Dot, // 1d5, d103, -9d9
-	
-	#[regex(r#""([^"\\\x00-\x1F]|\\(["\\bnfrt]|u[a-fA-F0-9]{4}|u[a-fA-F0-9]{2}))+?""#, priority=40)]
-	Str, // "hola", "HOLA", "HoLa123", "\""
-
-	// ONE character or escape
-	#[regex(r#"'([^'\\\x00-\x1F]|\\(['\\bnfrt]|u[a-fA-F0-9]{4}|u[a-fA-F0-9]{2}))?'"#, priority=40)]
-	Chr, // 'c', '\u6F', '\u1234'
-	
-	#[regex("true|false|yes|no", priority=60)]
-	Bln, // true, yes, false, no
-
-	#[regex(r"[^\d\x00-\x1F][a-zA-Z_][\da-zA-Z_]+?", priority=20)]
-	Word, // foo, bar_, _baz, bar2, seabun
->>>>>>> Stashed changes
-	
 	/* NON-KEYWORD-BASED TOKENS */
 	
 	#[regex(r"\d+", priority=40)]
@@ -174,18 +150,15 @@ pub enum TokenKind {
 	#[regex(r#"'([^'\\\x00-\x1F]|\\(['\\bnfrt]|u[a-fA-F0-9]{4}|u[a-fA-F0-9]{2}))?'"#, priority=40)]
 	Chr, // 'c', '\u6F', '\u1234'
 	
-<<<<<<< Updated upstream
-=======
-	#[regex("true|false|yes|no", priority=60)]
-	Bln, // true, yes, false, no
+	#[regex("true|false|yes|no", priority=40)]
+	Bln, // true, false
 
-	#[regex(r"[^\d\x00-\x1F][a-zA-Z_][\da-zA-Z_]+?", priority=20)]
+	#[regex(r"[^\d\x00-\x20.][^\x00-\x20.]*", priority=20)]
 	Word, // foo, bar_, _baz, bar2, seabun
 	
->>>>>>> Stashed changes
 	/* ERROR TYPE REPRESENTING (line, column) */
 	
-	Error ((usize, usize)),
+	Error,
 }
 
 /// converts lex's captures to "Token"s
@@ -194,32 +167,16 @@ pub fn tokenize(lex: &mut Lexer<TokenKind>) -> EcoVec<Token> {
 		.spanned() // gives (kind, span)
 		.map(|el| { // el = one (kind, span) pair
 			lex.next(); // advance lexer to get the slices
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-	
-			//println!("token:\n{}\n----------", lex.slice()); // visualize current slice
-	
-=======
-=======
-
 			println!("token:\n{}\n----------", lex.slice()); // visualize current slice
->>>>>>> Stashed changes
-
-			println!("token:\n{}\n----------", lex.slice()); // visualize current slice
-
->>>>>>> Stashed changes
 			Token {
-				kind: el.0.unwrap_or_else( // token kind start
-					|_| {
-						let line = lex.extras.0;
-						let column = lex.span().start - lex.extras.1;
-						TokenKind::Error((line, column))
-					}
-				), // token kind end
+				kind: el.0.unwrap_or_else(|_| {TokenKind::Error}), // if it can't be unwrapped it's an ERROR!!
 				
 				literal: lex.slice().trim().into(), // literal
 				
-				span: (el.1.start, el.1.end) // span
+				pos: ( // line and column
+					lex.extras.0, // extras is (line, column)
+					lex.span().start - lex.extras.1 // 
+				)
 			}
 		})
 		.filter(|el| { el.kind != TokenKind::Comment && el.kind != TokenKind::EnclosedComment })
