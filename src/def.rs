@@ -135,8 +135,29 @@ pub enum TokenKind {
 	#[regex("else", priority=60)]
 	Else,
 	
+<<<<<<< Updated upstream
 	#[regex(r"(true|false){1}", priority=70)]
 	Bln,
+=======
+	#[regex(r"\d+", priority=40)]
+	Num, // 1, 2, 3, 4
+	
+	#[regex(r"[\d]*d[\d]+", priority=40)]
+	Dot, // 1d5, d103, -9d9
+	
+	#[regex(r#""([^"\\\x00-\x1F]|\\(["\\bnfrt]|u[a-fA-F0-9]{4}|u[a-fA-F0-9]{2}))+?""#, priority=40)]
+	Str, // "hola", "HOLA", "HoLa123", "\""
+
+	// ONE character or escape
+	#[regex(r#"'([^'\\\x00-\x1F]|\\(['\\bnfrt]|u[a-fA-F0-9]{4}|u[a-fA-F0-9]{2}))?'"#, priority=40)]
+	Chr, // 'c', '\u6F', '\u1234'
+	
+	#[regex("true|false|yes|no", priority=60)]
+	Bln, // true, yes, false, no
+
+	#[regex(r"[^\d\x00-\x1F][a-zA-Z_][\da-zA-Z_]+?", priority=20)]
+	Word, // foo, bar_, _baz, bar2, seabun
+>>>>>>> Stashed changes
 	
 	/* NON-KEYWORD-BASED TOKENS */
 	
@@ -174,10 +195,15 @@ pub fn tokenize(lex: &mut Lexer<TokenKind>) -> EcoVec<Token> {
 		.map(|el| { // el = one (kind, span) pair
 			lex.next(); // advance lexer to get the slices
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 	
 			//println!("token:\n{}\n----------", lex.slice()); // visualize current slice
 	
 =======
+=======
+
+			println!("token:\n{}\n----------", lex.slice()); // visualize current slice
+>>>>>>> Stashed changes
 
 			println!("token:\n{}\n----------", lex.slice()); // visualize current slice
 
