@@ -46,8 +46,8 @@ def person rec:
 # named tuple called rgb
 def rgb {{num, num, num}}.
 
-# an entry block is also an expression, it requires a dot
-entry {
+# a "main" (entry point) block is also an expression, so it requires a dot
+main {
 	let first num = 10.
 	let second dot = 1d5. # d stands for dot
 
