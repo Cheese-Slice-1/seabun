@@ -134,10 +134,10 @@ pub enum TokenKind {
 	
 	#[regex(r"else", priority=60)]
 	Else,
-
- #[regex(r"(true|false){1}", priority=70)]
- Bln,
-
+	
+	#[regex(r"(true|false){1}", priority=70)]
+	Bln,
+	
 	/* NON-KEYWORD-BASED TOKENS */
 	
 	#[regex(r"[^\d\x00-\x1F][a-zA-Z_][\da-zA-Z_]*", priority=40)]
@@ -151,24 +151,25 @@ pub enum TokenKind {
 	
 	#[regex(r#""([^"\\\x00-\x1F]|\\(["\\bnfrt]|u[a-fA-F0-9]{4}|u[a-fA-F0-9]{2}))*""#, priority=20)]
 	Str, // "hola", "HOLA", "HoLa123", "\""
-
+	
 	// ONE character or escape
 	#[regex(r#"'([^'\\\x00-\x1F]|\\(['\\bnfrt]|u[a-fA-F0-9]{4}|u[a-fA-F0-9]{2}))?'"#, priority=20)]
 	Chr, // 'c', '\u6F', '\u1234'
 	
 	/* ERROR TYPE REPRESENTING (line, column) */
-
+	
 	Error ((usize, usize)),
 }
 
+/// converts lex's captures to "Token"s
 pub fn tokenize(lex: &mut Lexer<TokenKind>) -> EcoVec<Token> {
 	lex.clone()
 		.spanned() // gives (kind, span)
 		.map(|el| { // el = one (kind, span) pair
 			lex.next(); // advance lexer to get the slices
-
+	
 			//println!("token:\n{}\n----------", lex.slice()); // visualize current slice
-
+	
 			Token {
 				kind: el.0.unwrap_or_else( // token kind start
 					|_| {
@@ -177,9 +178,9 @@ pub fn tokenize(lex: &mut Lexer<TokenKind>) -> EcoVec<Token> {
 						TokenKind::Error((line, column))
 					}
 				), // token kind end
-
+				
 				literal: lex.slice().trim().into(), // literal
-
+				
 				span: (el.1.start, el.1.end) // span
 			}
 		})
