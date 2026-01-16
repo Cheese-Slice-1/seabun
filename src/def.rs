@@ -19,9 +19,9 @@ pub struct Token {
 	PRIORIDADES:
 	0. comentarios
 	1. simbolos
-	2. palabras clave
-	3. IDs y tipos
-	4. literales
+	2. literales
+	3. palabras clave
+	4. IDs y tipos
 */
 #[derive(Logos)]
 #[derive(Clone, Debug, PartialEq)]
@@ -63,10 +63,10 @@ pub enum TokenKind {
 	#[regex(";", priority=100)]
 	Semicolon, // also ends parameter/argument list
 
-	#[regex(r"[(]", priority=100)]
+	#[regex("[(]", priority=100)]
 	LParen, // nested expr start
 	
-	#[regex(r"[)]", priority=100)]
+	#[regex("[)]", priority=100)]
 	RParen, // nested expr end
 
 	#[regex(r"\[", priority=100)]
@@ -75,34 +75,34 @@ pub enum TokenKind {
 	#[regex(r"\]", priority=100)]
 	Rbracket, // nested expr end
 
-	#[regex(r"[{]", priority=100)]
+	#[regex("[{]", priority=100)]
 	LBrace, // block start
 
-	#[regex(r"[}]", priority=100)]
+	#[regex("[}]", priority=100)]
 	RBrace, // block end
 
-	#[regex(r"[{]{2}", priority=101)]
+	#[regex("[{]{2}", priority=101)]
 	LDblBrace, // tuple literal start
 
-	#[regex(r"[}]{2}", priority=101)]
+	#[regex("[}]{2}", priority=101)]
 	RDblBrace, // tuple literal end
 
-	#[regex(r"[+]", priority=100)]
+	#[regex("[+]", priority=100)]
 	Plus,
 
-	#[regex(r"-", priority=100)]
+	#[regex("-", priority=100)]
 	Minus,
 
-	#[regex(r"[*]", priority=100)]
+	#[regex("[*]", priority=100)]
 	Star,
 
-	#[regex(r"/", priority=100)]
+	#[regex("/", priority=100)]
 	Slash,
 
 	#[regex(r"\^", priority=100)]
 	Caret,
 
-	#[regex(r"%", priority=100)]
+	#[regex("%", priority=100)]
 	Percent,
 
 	/* KEYWORS-BASED TOKENS */
@@ -126,13 +126,13 @@ pub enum TokenKind {
 	#[regex("rec", priority=60)]
 	Rec, // record literal; rec: field type, ...!
 	
-	#[regex(r"if", priority=60)]
+	#[regex("if", priority=60)]
 	If,
 	
-	#[regex(r"elif", priority=60)]
+	#[regex("elif", priority=60)]
 	Elif,
 	
-	#[regex(r"else", priority=60)]
+	#[regex("else", priority=60)]
 	Else,
 	
 	#[regex(r"(true|false){1}", priority=70)]
@@ -140,22 +140,28 @@ pub enum TokenKind {
 	
 	/* NON-KEYWORD-BASED TOKENS */
 	
-	#[regex(r"[^\d\x00-\x1F][a-zA-Z_][\da-zA-Z_]*", priority=40)]
-	Word, // foo, bar_, _baz, bar2, seabun
-	
-	#[regex(r"\d+", priority=20)]
+	#[regex(r"\d+", priority=40)]
 	Num, // 1, 2, 3, 4
 	
-	#[regex(r"[\d]*d[\d]+", priority=20)]
+	#[regex(r"[\d]*d[\d]+", priority=40)]
 	Dot, // 1d5, d103, -9d9
 	
-	#[regex(r#""([^"\\\x00-\x1F]|\\(["\\bnfrt]|u[a-fA-F0-9]{4}|u[a-fA-F0-9]{2}))*""#, priority=20)]
+	#[regex(r#""([^"\\\x00-\x1F]|\\(["\\bnfrt]|u[a-fA-F0-9]{4}|u[a-fA-F0-9]{2}))+?""#, priority=40)]
 	Str, // "hola", "HOLA", "HoLa123", "\""
 	
 	// ONE character or escape
-	#[regex(r#"'([^'\\\x00-\x1F]|\\(['\\bnfrt]|u[a-fA-F0-9]{4}|u[a-fA-F0-9]{2}))?'"#, priority=20)]
+	#[regex(r#"'([^'\\\x00-\x1F]|\\(['\\bnfrt]|u[a-fA-F0-9]{4}|u[a-fA-F0-9]{2}))?'"#, priority=40)]
 	Chr, // 'c', '\u6F', '\u1234'
 	
+<<<<<<< Updated upstream
+=======
+	#[regex("true|false|yes|no", priority=60)]
+	Bln, // true, yes, false, no
+
+	#[regex(r"[^\d\x00-\x1F][a-zA-Z_][\da-zA-Z_]+?", priority=20)]
+	Word, // foo, bar_, _baz, bar2, seabun
+	
+>>>>>>> Stashed changes
 	/* ERROR TYPE REPRESENTING (line, column) */
 	
 	Error ((usize, usize)),
@@ -167,9 +173,15 @@ pub fn tokenize(lex: &mut Lexer<TokenKind>) -> EcoVec<Token> {
 		.spanned() // gives (kind, span)
 		.map(|el| { // el = one (kind, span) pair
 			lex.next(); // advance lexer to get the slices
+<<<<<<< Updated upstream
 	
 			//println!("token:\n{}\n----------", lex.slice()); // visualize current slice
 	
+=======
+
+			println!("token:\n{}\n----------", lex.slice()); // visualize current slice
+
+>>>>>>> Stashed changes
 			Token {
 				kind: el.0.unwrap_or_else( // token kind start
 					|_| {
