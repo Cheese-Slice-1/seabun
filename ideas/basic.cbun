@@ -15,12 +15,14 @@ let am_i_cool = yes.
 var seabun_is_great = true.
 let is_this_a_joke = no.
 var water_is_bad = false.
+#let name = "seabun".
+let initial = '\u6f'.
+
+/*
 
 #goal 1: simple compound expressions as a value
 let c = 1 + 2.
 let d = 1 + 2 - 3. # = 0; seabun has a LtR approach with operations
-
-/*
 
 # goal: parse blocks
 {

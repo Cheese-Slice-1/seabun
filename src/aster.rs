@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::process::exit;
 use ecow::{EcoString, EcoVec};
 
 use crate::def::{Token, TokenKind};
@@ -149,8 +150,8 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 			
 			/* ERROR */
 			Token {kind: TokenKind::Error, literal, pos, ..} => {
-				println!("unknown token \"{literal}\" at line {}:{}", pos.0, pos.1);
-				std::process::exit(1)
+				println!("error: unknown token \"{literal}\": {}:{}", pos.0, pos.1);
+				exit(1)
 			},
 
 			/* NOTHING */
@@ -235,26 +236,28 @@ fn parse_decl(tokens: EcoVec<Token>, ismut: bool) -> Expr {
 fn parse_val(value: EcoVec<Token>, errpos: (usize, usize)) -> Expr {
 	let mut res = Expr::Empty;
 
+	// single token expression
 	if value.len() < 2 {
 		return match &value[0] { // kind (Expr) isn't Cow (clone-on-write)
-			// a name
+			// a variable/type/etc. name
 			Token {kind: TokenKind::Word, literal, ..} => Expr::Name(literal.clone()),
 
-			// a single integer
+			// a integer
 			Token {kind: TokenKind::Num, literal, pos} => Expr::Num (
 				literal
 					.parse::<i64>()
 					.unwrap_or_else(|_| malformed("num literal", *pos))
 			),
 
-			// a single float
+			// a float
 			Token {kind: TokenKind::Dot, literal, pos} => Expr::Dot (
 				literal
 					.replace("d", ".")
 					.parse::<f64>()
 					.unwrap_or_else(|_| malformed("dot literal", *pos))
 			),
-
+			
+			// a boolean
 			Token {kind: TokenKind::Bln, literal, pos} => Expr::Bln (
 				match &literal[..] {
 					"true" | "yes" => true,
@@ -263,15 +266,24 @@ fn parse_val(value: EcoVec<Token>, errpos: (usize, usize)) -> Expr {
 				}
 			),
 
+			// a character literal
 			Token {kind: TokenKind::Chr, literal, pos} => {
-				let raw = literal.get(1..literal.len())
+				use unescaper::unescape;
+
+				let raw = unescape(
+					literal
+						.get(1..literal.len()-1)
+						.unwrap_or_else(|| r"\u0000")
+				).unwrap_or_else(|_| malformed("chr literal", *pos));
+
+				println!("{raw}");
 
 				todo!();
 				/*
 				TODO:
-					- convert "'_'"" to char '_'
-					- convert "'\_'" to char '\_'
-					- convert "'\uXX'" to char '\uXX'
+					[x] convert "'_'"" to char '_'
+					[ ] convert "'\_'" to char '\_'
+					[ ] convert "'\uXX'" to char '\uXX'
 				*/
 			},
 
@@ -301,7 +313,10 @@ fn parse_val(value: EcoVec<Token>, errpos: (usize, usize)) -> Expr {
 
 			Token {kind: TokenKind::Word, ref literal, ..} => res = Expr::Name(literal.clone()),
 
-			_ => todo!(),
+			_ => {
+				println!("unknown token \"{}\": {}:{}", value[i].literal, value[i].pos.0, value[i].pos.1);
+				exit(1);
+			},
 		}
 
 		i += 1;
@@ -335,14 +350,14 @@ pub fn to_varkind(lit: EcoString) -> VarKind {
 }
 
 fn malformed<'a>(exprkind: &'a str, pos: (usize, usize)) -> ! {
-	println!("malformed {exprkind}: {}:{}", pos.0, pos.1);
-	std::process::exit(1)
+	println!("error: malformed {exprkind}: {}:{}", pos.0, pos.1);
+	exit(1)
 }
 
 /*
 fn unknown_tok(tok: EcoString, pos: (usize, usize)) -> ! {
-	println!("unknown token \"{tok}\" at {}:{}", pos.0, pos.1);
-	std::process::exit(1)
+	println!("error: unknown token \"{tok}\" at {}:{}", pos.0, pos.1);
+	exit(1)
 }
 */
 

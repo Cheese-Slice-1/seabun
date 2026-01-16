@@ -45,7 +45,7 @@ pub enum TokenKind {
 	#[regex(r"#![^\x00-\x1F]+?", priority=120)]
 	Doc,
 
-	#[regex("[.]", priority=100)]
+	#[regex("[.]{1}", priority=100)]
 	ExprEnd, // end of an expression
 
 	#[regex(",", priority=100)]
@@ -143,17 +143,17 @@ pub enum TokenKind {
 	#[regex(r"[\d]*d[\d]+", priority=40)]
 	Dot, // 1d5, d103, -9d9
 	
-	#[regex(r#""([^"\\\x00-\x1F]|\\(["\\bnfrt]|u[a-fA-F0-9]{4}|u[a-fA-F0-9]{2}))+?""#, priority=40)]
+	#[regex(r#""([^"\\\x00-\x1F]|\\(["\\bnfrt]|u[a-fA-F0-9]{4}))+?""#, priority=40)]
 	Str, // "hola", "HOLA", "HoLa123", "\""
 	
 	// ONE character or escape
-	#[regex(r#"'([^'\\\x00-\x1F]|\\(['\\bnfrt]|u[a-fA-F0-9]{2}))?'"#, priority=40)]
+	#[regex(r#"'([^'\\\x00-\x1F]|\\(['\\bnfrt]|u[a-fA-F0-9]{4}))'"#, priority=40)]
 	Chr, // 'c', '\u6F', '\\', '\'', '\n'
 	
 	#[regex("true|false|yes|no", priority=40)]
 	Bln, // true, false
 
-	#[regex(r"[^\d\x00-\x1F][^\x00-\x20]*", priority=20)]
+	#[regex(r#"[^\d\s\x00-\x20.'"][^\s\x00-\x20.'"]*"#, priority=20)]
 	Word, // foo, bar_, _baz, bar2, seabun
 	
 	/* ERROR TYPE REPRESENTING (line, column) */
@@ -173,10 +173,11 @@ pub fn tokenize(lex: &mut Lexer<TokenKind>) -> EcoVec<Token> {
 				
 				literal: lex.slice().trim().into(), // literal
 				
-				pos: ( // line and column
-					lex.extras.0, // extras is (line, column)
-					lex.span().start - lex.extras.1 // 
-				)
+				pos: { // line and column
+					let line = lex.extras.0;
+					let column = lex.span().start - lex.extras.1;
+					(line, column)
+				}
 			}
 		})
 		.filter(|el| { el.kind != TokenKind::Comment && el.kind != TokenKind::EnclosedComment })
