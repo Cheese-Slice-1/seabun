@@ -135,6 +135,9 @@ pub enum TokenKind {
 	#[regex(r"else", priority=60)]
 	Else,
 
+ #[regex(r"(true|false){1}", priority=70)]
+ Bln,
+
 	/* NON-KEYWORD-BASED TOKENS */
 	
 	#[regex(r"[^\d\x00-\x1F][a-zA-Z_][\da-zA-Z_]*", priority=40)]
@@ -152,9 +155,6 @@ pub enum TokenKind {
 	// ONE character or escape
 	#[regex(r#"'([^'\\\x00-\x1F]|\\(['\\bnfrt]|u[a-fA-F0-9]{4}|u[a-fA-F0-9]{2}))?'"#, priority=20)]
 	Chr, // 'c', '\u6F', '\u1234'
-	
-	#[regex(r"true|false", priority=60)]
-	Bln,
 	
 	/* ERROR TYPE REPRESENTING (line, column) */
 
