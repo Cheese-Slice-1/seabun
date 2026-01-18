@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use ecow::{EcoString, EcoVec};
 
 extern crate logos;
@@ -143,11 +144,11 @@ pub enum TokenKind {
 	#[regex(r"[\d]*d[\d]+", priority=40)]
 	Dot, // 1d5, d103, -9d9
 	
-	#[regex(r#""([^"\\\x00-\x1F]|\\(["\\bnfrt]|u[a-fA-F0-9]{4}))+?""#, priority=40)]
+	#[regex(r#""([^"\\\x00-\x1F]|\\(["\\bnfrt]|u[a-fA-F0-9]{4}|x[a-fA-F0-9]{2}))+?""#, priority=40)]
 	Str, // "hola", "HOLA", "HoLa123", "\""
 	
 	// ONE character or escape
-	#[regex(r#"'([^'\\\x00-\x1F]|\\(['\\bnfrt]|u[a-fA-F0-9]{4}))'"#, priority=40)]
+	#[regex(r#"'([^'\\\x00-\x1F]|\\(['\\bnfrt]|u[a-fA-F0-9]{4}|x[a-fA-F0-9]{2}))'"#, priority=40)]
 	Chr, // 'c', '\u6F', '\\', '\'', '\n'
 	
 	#[regex("true|false|yes|no", priority=40)]
@@ -159,6 +160,120 @@ pub enum TokenKind {
 	/* ERROR TYPE REPRESENTING (line, column) */
 	
 	Error,
+}
+
+/// every possible Seabun expression
+#[derive(Clone, Debug, PartialEq)]
+pub enum Expr {
+	/* SIMPLE EXPRESSIONS */
+	// these consist of a single non-self-referential value
+
+	/// empty expression; throws an error in declarations
+	Empty,
+
+	/// integer
+	Num (i64),
+	
+	/// float
+	Dot (f64),
+	
+	/// string literal
+	Str (EcoString),
+	
+	/// character literal
+	Chr (char),
+
+	/// boolean
+	Bln (bool),
+
+	/// variable/function/type name
+	Name (EcoString),
+
+	/* SIMPLE COMPUND EXPRESSIONS */
+	/* they produce concrete value and kind*/
+
+	/// a single block
+	Block (EcoVec<Expr>),
+
+	/// tuple
+	Tup (EcoVec<Expr>),
+
+	/// array
+	Arr (EcoVec<Expr>, VarKind), // varkind = first value's varkind
+	
+	/// record
+	Rec (HashMap<EcoString, Expr>),
+
+	/// function literal; like fun: arg num! {}
+	Fun { 
+		kind: VarKind, // return type
+		args: (usize, HashMap<EcoString, VarKind>), // argument types + names
+		body: Box<Expr>, 
+	},
+	
+	/// arithmetic operation
+	Op { //x+y, x-y, x*y, x/y, x^x, x%x
+		left: Box<Expr>,
+		right:Box<Expr>,
+		op: char,
+	},
+
+	/* COMPLEX COMPOUND EXPRESSIONS */
+	/* they produce an Expr::Empty value and a VarType::Unknown kind (tl;dr: can't be values) */
+	
+	/// represents a new push to the stack or allocation on the heap
+	Bind { // e.g. let s = "". -> Decl {id: "s".into(), kind: VarKind::Str, val: Box::new(Expr::Str("a".to_owned())), ismut: false}
+		id: EcoString,
+		kind: VarKind,
+		val: Box<Expr>,
+		ismut: bool,
+	},
+
+	/// represents a change to an already existing variable
+	ReBind { // e.g. 
+		id: EcoString,
+		kind: VarKind,
+		val: Box<Expr>,
+	}
+}
+
+/// every possible variable kind in Seabun;
+/// these only contain essential info
+#[derive(Clone, Debug, PartialEq)]
+pub enum VarKind {
+	Num,
+	Dot,
+	Str,
+	Chr,
+	Bln,
+	Ref (Box<VarKind>), // reference to a type
+	Arr (Box<VarKind>, usize),
+	Tup (EcoVec<VarKind>), // length is the number of varkinds
+
+	// records may only differ in property names.
+	// as they are part of the type itself, it's easy to compare them and cast them
+	Rec (HashMap<EcoString, VarKind>),
+	/*
+		an example would be:
+			def rec_a = rec:
+				foo str,
+				bar num!.
+			def re_b = rec:
+				foo str,
+				bar num!.
+			
+			let something = rec_a!.
+	*/
+
+	// same principle for functions.
+	// as the arguments and return type are part of the type, you can cast them
+	Fun (HashMap<EcoString, VarKind>, Box<VarKind>),
+
+	// these is the equivalent of a rust unit
+	Unit,
+
+	// resolves in the AST's second pass; if not, throws error
+	Unknown,
 }
 
 /// converts lex's captures to "Token"s

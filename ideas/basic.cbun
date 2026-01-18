@@ -15,8 +15,8 @@ let am_i_cool = yes.
 var seabun_is_great = true.
 let is_this_a_joke = no.
 var water_is_bad = false.
+let initial = '\x73'.
 #let name = "seabun".
-let initial = '\u6f'.
 
 /*
 

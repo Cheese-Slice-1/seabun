@@ -1,121 +1,8 @@
-use std::collections::HashMap;
+//use std::collections::HashMap;
 use std::process::exit;
 use ecow::{EcoString, EcoVec};
 
-use crate::def::{Token, TokenKind};
-
-/// every possible Seabun expression
-#[derive(Clone, Debug, PartialEq)]
-pub enum Expr {
-	/* SIMPLE EXPRESSIONS */
-	// these consist of a single non-self-referential value
-
-	/// empty expression; throws an error in declarations
-	Empty,
-
-	/// integer
-	Num (i64),
-	
-	/// float
-	Dot (f64),
-	
-	/// string literal
-	Str (EcoString),
-	
-	/// character literal
-	Chr (char),
-
-	/// boolean
-	Bln (bool),
-
-	/// variable/function/type name
-	Name (EcoString),
-
-	/* SIMPLE COMPUND EXPRESSIONS */
-	/* they produce concrete value and kind*/
-
-	/// a single block
-	Block (EcoVec<Expr>),
-
-	/// tuple
-	Tup (EcoVec<Expr>),
-
-	/// array
-	Arr (EcoVec<Expr>, VarKind), // varkind = first value's varkind
-	
-	/// record
-	Rec (HashMap<EcoString, Expr>),
-
-	/// function literal; like fun: arg num! {}
-	Fun { 
-		kind: VarKind, // return type
-		args: (usize, HashMap<EcoString, VarKind>), // argument types + names
-		body: Box<Expr>, 
-	},
-	
-	/// arithmetic operation
-	Op { //x+y, x-y, x*y, x/y, x^x, x%x
-		left: Box<Expr>,
-		right:Box<Expr>,
-		op: char,
-	},
-
-	/* COMPLEX COMPOUND EXPRESSIONS */
-	/* they produce an Expr::Empty value and a VarType::Unknown kind (tl;dr: can't be values) */
-	
-	/// represents a new push or allocation
-	Decl { // e.g. let s = "". -> Decl {id: "s".into(), kind: VarKind::Str, val: Box::new(Expr::Str("a".to_owned())), ismut: false}
-		id: EcoString,
-		kind: VarKind,
-		val: Box<Expr>,
-		ismut: bool,
-	},
-
-	/// represents a change in an already existing variable
-	ReDecl { // e.g. 
-		id: EcoString,
-		kind: VarKind,
-		val: Box<Expr>,
-	}
-}
-
-/// every possible variable kind in Seabun;
-/// these only contain essential info
-#[derive(Clone, Debug, PartialEq)]
-pub enum VarKind {
-	Num,
-	Dot,
-	Str,
-	Chr,
-	Bln,
-	Arr (Box<VarKind>, usize),
-	Tup (EcoVec<VarKind>), // length is the number of varkinds
-
-	// records may only differ in property names.
-	// as they are part of the type itself, it's easy to compare them and cast them
-	Rec (HashMap<EcoString, VarKind>),
-	/*
-		an example would be:
-			def rec_a = rec:
-				foo str,
-				bar num!.
-			def re_b = rec:
-				foo str,
-				bar num!.
-			
-			let something = rec_a!.
-	*/
-
-	// same principle for functions.
-	// as the arguments and return type are part of the type, you can cast them
-	Fun (HashMap<EcoString, VarKind>, Box<VarKind>),
-
-	// these is the equivalent of a rust unit
-	Unit,
-
-	// resolves in the AST's second pass; if not, throws error
-	Unknown,
-}
+use crate::def::{Token, TokenKind, Expr, VarKind};
 
 /// creates a very primitive ast
 pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
@@ -134,7 +21,7 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 				
 				i += decl.len() - 1;
 
-				res.push(parse_decl(
+				res.push(parse_bind(
 					decl, // tokens that conform th declaration
 
 					// always "let" or "var". nothing else should be possible
@@ -146,6 +33,10 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 						_ => panic!("this shouldn't happen!!"),
 					},
 				));
+			},
+
+			Token {kind: TokenKind::Word, literal, ..} if tokens[i+1].kind == TokenKind::EqSign => {
+				
 			},
 			
 			/* ERROR */
@@ -167,12 +58,12 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 }
 
 pub fn advanced_ast(_ast: EcoVec<Expr>) -> EcoVec<Expr> {
-	todo!(); // clean up AST and resolve datatypes, expressions, etc. here
+	todo!(); // TODO: clean up AST and resolve datatypes, expressions, etc. here
 }
 
 // AST-RELATED FUNCTIONS
 
-fn parse_decl(tokens: EcoVec<Token>, ismut: bool) -> Expr {
+fn parse_bind(tokens: EcoVec<Token>, ismut: bool) -> Expr {
 	//use std::any::type_name_of_val;
 
 	// line and column of malformed/unknown token
@@ -213,14 +104,14 @@ fn parse_decl(tokens: EcoVec<Token>, ismut: bool) -> Expr {
 	
 	//println!("{:?}\n{:?}\n{:#?}\n", &name, &kind, &value);
 	
-	Expr::Decl {
+	Expr::Bind {
 		id: name
 			.unwrap()
 			.literal
 			.clone(),
 		kind: match kind {
 			Some(tok) => to_varkind(tok.literal.clone()),
-			None => VarKind::Unknown,
+			_ => VarKind::Unknown,
 		},
 		val: Box::new(parse_val(
 			(*value.unwrap()).into(),
@@ -299,12 +190,16 @@ fn parse_val(value: EcoVec<Token>, errpos: (usize, usize)) -> Expr {
 		match value[i] {
 			// a parenthesized expression
 			Token {kind: TokenKind::LParen, pos, ..} => {
+				let parenspan = value[i..] // sub tokens to parse
+					.iter()
+					.take_while(|tok| tok.kind != TokenKind::ExprEnd)
+					.cloned()
+					.collect::<EcoVec<Token>>();
+
+				i += parenspan.len();
+				
 				let parenval = parse_val(
-					value[i..] // sub tokens to parse
-						.iter()
-						.take_while(|tok| tok.kind != TokenKind::ExprEnd)
-						.cloned()
-						.collect::<EcoVec<Token>>(),
+					parenspan,
 					pos,
 				);
 
@@ -312,7 +207,7 @@ fn parse_val(value: EcoVec<Token>, errpos: (usize, usize)) -> Expr {
 			},
 
 			Token {kind: TokenKind::Word, ref literal, ..} => res = Expr::Name(literal.clone()),
-
+			
 			_ => {
 				println!("unknown token \"{}\": {}:{}", value[i].literal, value[i].pos.0, value[i].pos.1);
 				exit(1);
@@ -361,6 +256,7 @@ fn unknown_tok(tok: EcoString, pos: (usize, usize)) -> ! {
 }
 */
 
+// TODO: implement AST v2 using this to check if an expr is Expr::Empty
 fn check(expr: Expr) -> Result<Expr, ()> {
 	if expr == Expr::Empty {
 		println!("");
@@ -383,7 +279,7 @@ fn check(expr: Expr) -> Result<Expr, ()> {
 	]
 	into:
 	[
-		Expr::Decl {
+		Expr::Bind {
 			id: "x".into(),
 			kind: VarKind::Unknown,
 			val: Box::new(Expr::Op {
@@ -394,9 +290,9 @@ fn check(expr: Expr) -> Result<Expr, ()> {
 			ismut: false,
 		},
 	]
-	which would then resolve to:
+	which would then resolve as:
 	[
-		Expr::Decl {
+		Expr::Bind {
 			id: "x".into(),
 			kind: VarKind::Num,
 			val: Box::new(Expr::Num(10)),
