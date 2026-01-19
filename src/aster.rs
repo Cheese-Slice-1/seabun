@@ -1,10 +1,11 @@
 //use std::collections::HashMap;
 use std::process::exit;
-use ecow::{EcoString, EcoVec};
+use ecow::{EcoString, EcoVec, eco_vec};
 
 use crate::def::{Token, TokenKind, Expr, VarKind};
 
-static mut BINDINGS: Vec<(String, Expr)> = vec![];
+// TODO: defined ids; move it to where it belongs!!
+static mut BINDINGS: EcoVec<(String, Expr)> = eco_vec![];
 
 /// creates a very primitive ast
 pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
@@ -129,6 +130,10 @@ fn parse_bind(tokens: EcoVec<Token>, ismut: bool) -> Expr {
 		)),
 		ismut,
 	}
+}
+
+fn parse_rebind(tokens: EcoVec<Token>) -> Expr {
+	todo!()
 }
 
 /* SIMPLE EXPRESSIONS GENERATORS */
