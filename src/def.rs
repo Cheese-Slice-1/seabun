@@ -39,9 +39,6 @@ pub enum TokenKind {
 
 	#[regex(r#"[#][^\x00-\x1F]*"#, priority=110)]
 	Comment, // #a line comment
-
-	#[regex(r#"/[*]([^*\x00]|([*][^/\x00]))*[*]/"#, priority=100)]
-	EnclosedComment, // /* an enclosed comment */
 	
 	#[regex(r"#![^\x00-\x1F]+?", priority=120)]
 	Doc,
@@ -284,7 +281,7 @@ pub fn tokenize(lex: &mut Lexer<TokenKind>) -> EcoVec<Token> {
 			lex.next(); // advance lexer to get the slices
 			println!("token:\n{}\n----------", lex.slice()); // visualize current slice
 			Token {
-				kind: el.0.unwrap_or_else(|_| {TokenKind::Error}), // if it can't be unwrapped it's an ERROR!!
+				kind: el.0.unwrap_or_else(|_| TokenKind::Error), // if it can't be unwrapped it's an ERROR!!
 				
 				literal: lex.slice().trim().into(), // literal
 				
@@ -295,6 +292,6 @@ pub fn tokenize(lex: &mut Lexer<TokenKind>) -> EcoVec<Token> {
 				}
 			}
 		})
-		.filter(|el| { el.kind != TokenKind::Comment && el.kind != TokenKind::EnclosedComment })
+		.filter(|el| el.kind != TokenKind::Comment)
 		.collect()
 }

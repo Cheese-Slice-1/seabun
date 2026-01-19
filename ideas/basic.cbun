@@ -1,13 +1,4 @@
 # goal 0: declarations
-/*
-
-and
-
-comments
-
-heh
-
-*/
 
 let a = 1.
 var b = 2d0.
@@ -18,18 +9,14 @@ var water_is_bad = false.
 let initial = '\x73'.
 #let name = "seabun".
 
-/*
-
 #goal 1: simple compound expressions as a value
-let c = 1 + 2.
-let d = 1 + 2 - 3. # = 0; seabun has a LtR approach with operations
+#let c = 1 + 2.
+#let d = 1 + 2 - 3. # = 0; seabun has a LtR approach with operations
 
 # goal: parse blocks
-{
+#{
 
-}
+#}
 
 # goal: parse functions
-let c = fun: x num! x+1.
-
-*/
+#let c = fun: x num! x+1.

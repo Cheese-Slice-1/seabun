@@ -4,6 +4,8 @@ use ecow::{EcoString, EcoVec};
 
 use crate::def::{Token, TokenKind, Expr, VarKind};
 
+static mut BINDINGS: Vec<(String, Expr)> = vec![];
+
 /// creates a very primitive ast
 pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 	let mut i: usize = 0; // boring index
@@ -13,16 +15,15 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 		match &tokens[i] {
 			/* DECLARATIONS */
 			Token {kind: TokenKind::Let, literal, ..} | Token {kind: TokenKind::Var, literal, ..} => {
-				let decl: EcoVec<Token> = tokens[i..] // let-related chunk
+				let bind: EcoVec<Token> = tokens[i..] // let-related chunk
 					.iter()
 					.take_while(|tok| tok.kind != TokenKind::ExprEnd)
 					.cloned()
 					.collect::<EcoVec<Token>>();
-				
-				i += decl.len() - 1;
+				i += bind.len() - 1;
 
 				res.push(parse_bind(
-					decl, // tokens that conform th declaration
+					bind, // tokens that conform th declaration
 
 					// always "let" or "var". nothing else should be possible
 					// if there's something else blame it on me or the lexer
@@ -36,7 +37,16 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 			},
 
 			Token {kind: TokenKind::Word, literal, ..} if tokens[i+1].kind == TokenKind::EqSign => {
-				
+				let rebind: EcoVec<Token> = tokens[i..]
+					.iter()
+					.take_while(|tok| tok.kind != TokenKind::ExprEnd)
+					.cloned()
+					.collect::<EcoVec<Token>>();
+				i += rebind.len() - 1;
+
+				res.push(parse_rebind(
+					rebind,
+				));
 			},
 			
 			/* ERROR */
