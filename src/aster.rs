@@ -15,7 +15,7 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 	while i < tokens.len() {
 		match &tokens[i] {
 			/* DECLARATIONS */
-			Token {kind: TokenKind::Let, literal, ..} | Token {kind: TokenKind::Var, literal, ..} => {
+			Token {kind: TokenKind::Let, literal, ..} | Token {kind: TokenKind::Mut, literal, ..} => {
 				let bind: EcoVec<Token> = tokens[i..] // let-related chunk
 					.iter()
 					.take_while(|tok| tok.kind != TokenKind::ExprEnd)
@@ -26,13 +26,13 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 				res.push(parse_bind(
 					bind, // tokens that conform th declaration
 
-					// always "let" or "var". nothing else should be possible
+					// always Let or Mut. nothing else should be possible
 					// if there's something else blame it on me or the lexer
 					// cuz lil bro shouldn't be doing that...
-					match &literal[..] {
-						"let" => false,	// ismut = false
-						"var" => true,	// ismut = true
-						_ => panic!("this shouldn't happen!!"),
+					match kind { // TODO: check if this works duhhh
+						TokenKind::Let => false,	// ismut = false
+						TokenKind::Mut => true,		// ismut = true
+						_ => panic!("this shouldn't happen!! wtf!!!!"),
 					},
 				));
 			},
