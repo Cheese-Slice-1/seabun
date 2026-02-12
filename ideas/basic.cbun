@@ -1,22 +1,31 @@
-# goal 0: declarations
+; goal 0: bindings
 
+;! docs of a very important immutable binding
 let a = 1.
-var b = 2d0.
+mut b = 2d0.
 let am_i_cool = yes.
-var seabun_is_great = true.
+mut seabun_is_great = true.
 let is_this_a_joke = no.
-var water_is_bad = false.
+mut water_is_bad = false.
 let initial = '\x73'.
-#let name = "seabun".
+;mut name = "seabun".
+;def int num. ; type binding
 
-#goal 1: simple compound expressions as a value
-#let c = 1 + 2.
-#let d = 1 + 2 - 3. # = 0; seabun has a LtR approach with operations
+; goal 1: simple compound expressions as a value
+;let c = 1 + 2.
+;let d = 1 + 2 - 3. # = 0; seabun has a LtR approach with operations
 
-# goal: parse blocks
-#{
+; goal: parse blocks
+;{
+;  show "hi".
+;}
 
-#}
+; goal2 : parse functions
+;give 1. ; first give statements
+;fun: x num { show x as str. }. ; then function values
+; ^ type "fun:num"
+;let append_two = fun: first chr, second chr -> str { give [first, second] as str}
+;append_two: 'h', 'i'! ; and fun calls!!
+;append_two: second = 'i', first = 'h'! ; should be the same as the above
 
-# goal: parse functions
-#let c = fun: x num! x+1.
+; goal: parse 
