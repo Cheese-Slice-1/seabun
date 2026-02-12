@@ -116,16 +116,16 @@ pub enum TokenKind {
 	As, // casting
 	
 	#[regex("let", priority=60)]
-	Let, // immutable variable declaration
+	Let, // immutable binding declaration
 
-	#[regex("var", priority=60)]
-	Var, // mutable variable declaration
+	#[regex("mut", priority=60)]
+	Mut, // mutable binding declaration
 
 	#[regex("def", priority=60)]
 	Def, // type definition
 	
 	#[regex("fun", priority=60)]
-	Fun, // function literal; fun name: parameter type, ...!
+	Fun, // function literal; fun: parameter type, ... -> type
 
 	#[regex("rec", priority=60)]
 	Rec, // record literal; rec: field type, ...!
