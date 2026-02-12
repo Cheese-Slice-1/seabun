@@ -58,9 +58,6 @@ pub enum TokenKind {
 	#[regex("[!]", priority=100)]
 	Bang, // ends parameter/argument list
 
-	#[regex("#", priority=100)]
-	Hash,
-
 	#[regex("[(]", priority=100)]
 	LParen, // nested expr start
 	
@@ -102,6 +99,15 @@ pub enum TokenKind {
 
 	#[regex("%", priority=100)]
 	Percent,
+
+	#[regex("#", priority=100)]
+	Hash,
+	
+	#[regex("@", priority=100)]
+	AtSign,
+
+	#[regex("->", priority=100)]
+	Arrow, // will denote return type for funs and mabe smth more??
 
 	/* KEYWORS-BASED TOKENS */
 
