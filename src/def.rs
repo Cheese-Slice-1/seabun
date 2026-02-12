@@ -37,10 +37,10 @@ pub struct Token {
 pub enum TokenKind {
 	/* SYMBOL-BASED TOKENS */
 
-	#[regex(r#"[#][^\x00-\x1F]*"#, priority=110)]
+	#[regex(r#";[^\x00-\x1F]*"#, priority=110)]
 	Comment, // #a line comment
 	
-	#[regex(r"#![^\x00-\x1F]+?", priority=120)]
+	#[regex(r";![^\x00-\x1F]+?", priority=120)]
 	Doc,
 
 	#[regex("[.]{1}", priority=100)]
@@ -58,8 +58,8 @@ pub enum TokenKind {
 	#[regex("[!]", priority=100)]
 	Bang, // ends parameter/argument list
 
-	#[regex(";", priority=100)]
-	Semicolon, // also ends parameter/argument list
+	#[regex("#", priority=100)]
+	Hash,
 
 	#[regex("[(]", priority=100)]
 	LParen, // nested expr start
