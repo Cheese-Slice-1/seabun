@@ -8,7 +8,7 @@ mut seabun_is_great = true.
 let is_this_a_joke = no.
 mut water_is_bad = false.
 let initial = '\x73'.
-;mut name = "seabun".
+mut name = "seabun".
 ;def int num. ; type binding
 
 ; goal 1: simple compound expressions as a value

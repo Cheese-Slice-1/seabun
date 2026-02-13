@@ -1,11 +1,15 @@
+// TODO: WHY DOESN'T IT FUCKING WORK I'M GONNA CRY WHATTTTTTTTTTTT (QnQc)
+// someone help I BEG OF YOU :""/
+
 //use std::collections::HashMap;
 use std::process::exit;
-use ecow::{EcoString, EcoVec, eco_vec};
+use ecow::{EcoString, EcoVec/*, eco_vec*/};
+use unescaper::unescape;
 
-use crate::def::{Token, TokenKind, Expr, VarKind};
+use crate::def::{Token, TokenKind, Expr, VarKind, BindKind};
 
 // TODO: defined ids; move it to where it belongs!!
-static mut BINDINGS: EcoVec<(String, Expr)> = eco_vec![];
+//static mut BINDINGS: EcoVec<(String, Expr)> = eco_vec![];
 
 /// creates a very primitive ast
 pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
@@ -15,7 +19,10 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 	while i < tokens.len() {
 		match &tokens[i] {
 			/* DECLARATIONS */
-			Token {kind: TokenKind::Let, literal, ..} | Token {kind: TokenKind::Mut, literal, ..} => {
+			Token {kind: TokenKind::Let, literal, ..} |
+			Token {kind: TokenKind::Mut, literal, ..} |
+			Token {kind: TokenKind::Def, literal, ..}
+			=> {
 				let bind: EcoVec<Token> = tokens[i..] // let-related chunk
 					.iter()
 					.take_while(|tok| tok.kind != TokenKind::ExprEnd)
@@ -23,17 +30,20 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 					.collect::<EcoVec<Token>>();
 				i += bind.len() - 1;
 
+				let bind_params = match &literal[..] { // NOTE: don't use kind. do not. please.
+					"mut" => (true, false),		// mutable
+					"let" => (false, false),	// mutablen't (badum tsss)
+					"def" => (false, true),		// mutablen't and a "typedef" (b a d u m   t s s s)
+					_ => panic!("this shouldn't happen!! wtf!!!!"),
+				};
+
 				res.push(parse_bind(
 					bind, // tokens that conform th declaration
 
 					// always Let or Mut. nothing else should be possible
 					// if there's something else blame it on me or the lexer
 					// cuz lil bro shouldn't be doing that...
-					match kind { // TODO: check if this works duhhh
-						TokenKind::Let => false,	// ismut = false
-						TokenKind::Mut => true,		// ismut = true
-						_ => panic!("this shouldn't happen!! wtf!!!!"),
-					},
+					bind_params
 				));
 			},
 
@@ -68,13 +78,19 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 	res
 }
 
+/*
 pub fn advanced_ast(_ast: EcoVec<Expr>) -> EcoVec<Expr> {
-	todo!(); // TODO: clean up AST and resolve datatypes, expressions, etc. here
+	unimplemented!(); // TODO: clean up AST and resolve datatypes, expressions, etc. here
 }
+*/
 
 // AST-RELATED FUNCTIONS
 
-fn parse_bind(tokens: EcoVec<Token>, ismut: bool) -> Expr {
+/// parses a binding
+/// takes two parameters:
+/// - "tokens": the vector of tokens that conform the bind
+/// - "bind_kind": the chosen bind type as a bool pair representing (IS_MUT, IS_DEF)
+fn parse_bind(tokens: EcoVec<Token>, bind_kind: (bool, bool)) -> Expr {
 	//use std::any::type_name_of_val;
 
 	// line and column of malformed/unknown token
@@ -83,7 +99,7 @@ fn parse_bind(tokens: EcoVec<Token>, ismut: bool) -> Expr {
 	// "parts" are the declaration's sides
 	let parts = tokens
 		.get(1..tokens.len())
-		.unwrap_or_else(|| {malformed("declaration", errpos);})
+		.unwrap_or_else(|| malformed("declaration", errpos))
 		.split(|tok| tok.kind == TokenKind::EqSign)
 		.collect::<EcoVec<_>>();
 	
@@ -95,11 +111,15 @@ fn parse_bind(tokens: EcoVec<Token>, ismut: bool) -> Expr {
 	}
 	*/
 
-	if parts.get(0).unwrap().len() > 2 || parts.get(0).unwrap().is_empty() {
+	// if there's nothing between let/mut/def and "=", scream "malformed declaration"
+	if parts.get(0)
+		.unwrap_or_else(|| malformed("declaration", errpos))
+		.is_empty()
+	{
 		malformed("declaration", errpos);
 	}
 	
-	let (name, kind, value) = (
+	let (name, var_kind, value) = (
 		parts
 			.get(0) // parts[0] contains both name and type
 			.unwrap_or_else(|| malformed("declaration", errpos))
@@ -107,12 +127,17 @@ fn parse_bind(tokens: EcoVec<Token>, ismut: bool) -> Expr {
 		parts
 			.get(0)
 			.unwrap_or_else(|| malformed("declaration", errpos))
-			.get(1), // variable type
+			.get(1..), // variable type
 		parts
 			.get(1) // variable value
 			.cloned()
-		);
+	);
 	
+	let holds = match var_kind {
+		Some(toks) => to_varkind(EcoVec::from(toks), errpos),
+		_ => VarKind::Unknown,
+	};
+
 	//println!("{:?}\n{:?}\n{:#?}\n", &name, &kind, &value);
 	
 	Expr::Bind {
@@ -120,30 +145,32 @@ fn parse_bind(tokens: EcoVec<Token>, ismut: bool) -> Expr {
 			.unwrap()
 			.literal
 			.clone(),
-		kind: match kind {
-			Some(tok) => to_varkind(tok.literal.clone()),
-			_ => VarKind::Unknown,
+		kind: match bind_kind {
+			(true, _) => BindKind::MutValue(holds),
+			(false, false) => BindKind::Value(holds), //
+			(false, true) => BindKind::Define(holds)
 		},
 		val: Box::new(parse_val(
 			(*value.unwrap()).into(),
-			errpos
+			errpos,
+			false
 		)),
-		ismut,
 	}
 }
 
-fn parse_rebind(tokens: EcoVec<Token>) -> Expr {
-	todo!()
+fn parse_rebind(_tokens: EcoVec<Token>) -> Expr {
+	unimp()
 }
 
 /* SIMPLE EXPRESSIONS GENERATORS */
 
 /// precedence-based non-composite expression parser
-fn parse_val(value: EcoVec<Token>, errpos: (usize, usize)) -> Expr {
+fn parse_val(value: EcoVec<Token>, errpos: (usize, usize), isnested: bool) -> Expr {
+	// expression to return
 	let mut res = Expr::Empty;
 
 	// single token expression
-	if value.len() < 2 {
+	if value.len() == 1 {
 		return match &value[0] { // kind (Expr) isn't Cow (clone-on-write)
 			// a variable/type/etc. name
 			Token {kind: TokenKind::Word, literal, ..} => Expr::Name(literal.clone()),
@@ -166,36 +193,45 @@ fn parse_val(value: EcoVec<Token>, errpos: (usize, usize)) -> Expr {
 			// a boolean
 			Token {kind: TokenKind::Bln, literal, pos} => Expr::Bln (
 				match &literal[..] {
-					"true" | "yes" => true,
-					"false" | "no" => false,
+					"yes" | "true" => true,
+					"no" | "false" => false,
 					_ => malformed("bln literal", *pos),
 				}
 			),
 
 			// a character literal
 			Token {kind: TokenKind::Chr, literal, pos} => {
-				use unescaper::unescape;
+				let raw: char =
+					unescape(
+						literal
+							.get(1..literal.len()-1)
+							.unwrap_or(r"\u0000")
+					)
+					.unwrap_or_else(|_| malformed("chr literal", *pos))
+					.chars()
+					.nth(0)
+					.unwrap_or('\x00');
 
-				let raw = unescape(
-					literal
-						.get(1..literal.len()-1)
-						.unwrap_or_else(|| r"\u0000")
-				).unwrap_or_else(|_| malformed("chr literal", *pos));
+				Expr::Chr(raw)
+			},
 
-				println!("{raw}");
+			Token {kind: TokenKind::Str, literal, pos, ..} => {
+				let unescaped = EcoString::from(
+					unescape(
+						literal
+							.get(1..literal.len()-1)
+							.unwrap_or("")
+					)
+					.unwrap_or_else(|_| malformed("str literal", *pos))
+				);
 
-				todo!();
-				/*
-				TODO:
-					[x] convert "'_'"" to char '_'
-					[ ] convert "'\_'" to char '\_'
-					[ ] convert "'\uXX'" to char '\uXX'
-				*/
+				Expr::Str(unescaped)
+
 			},
 
 			Token {kind: TokenKind::RParen, ..} => res,
 			
-			_ => malformed("expression", errpos), // TODO: parse other single-token expressions
+			_ => malformed("or unimplemented expression", errpos), // TODO: parse other single-token expressions
 		};
 	}
 
@@ -216,9 +252,19 @@ fn parse_val(value: EcoVec<Token>, errpos: (usize, usize)) -> Expr {
 				let parenval = parse_val(
 					parenspan,
 					pos,
+					true
 				);
+				
+				res = parenval;
+				// parse_val on everything until a ")"
+			},
 
-				todo!(); // parse_val on everything until a ")"
+			Token {kind: TokenKind::RParen, pos, ..} => {
+				if isnested {
+					return res;
+				} else {
+					malformed("parenthesized expression", pos);
+				}
 			},
 
 			Token {kind: TokenKind::Word, ref literal, ..} => res = Expr::Name(literal.clone()),
@@ -240,27 +286,41 @@ fn parse_val(value: EcoVec<Token>, errpos: (usize, usize)) -> Expr {
 			- RParen => forcibly return from parse_val
 	*/
 
-	todo!();
+	//unimplemented!();
 
 	res
 }
 
 /* UTILS */
 
-pub fn to_varkind(lit: EcoString) -> VarKind {
+pub fn to_varkind(toks: EcoVec<Token>, pos: (usize, usize)) -> VarKind {
 	// predefined literals
-	match &lit[..] {
-		"num" => VarKind::Num,
-		"dot" => VarKind::Dot,
-		"chr" => VarKind::Chr,
-		"str" => VarKind::Str,
-		"bln" => VarKind::Bln,
-		_ => VarKind::Unknown, // non-primitive (like tuples, arrays and records)
+	if toks.len() < 2 {
+		let Some(tok) = toks.get(0) else { malformed("declaration", pos) };
+		match &tok.literal[..] {
+			"num" => VarKind::Num,
+			"dot" => VarKind::Dot,
+			"chr" => VarKind::Chr,
+			"str" => VarKind::Str,
+			"bln" => VarKind::Bln,
+			_ => VarKind::Unknown, // non-primitive (like custom types, tuples, arrays and records)
+		}
+	} else {
+		// TODO: implement complex types like funs, recs, arrays, etc.
+		// very important so remember eh?
+		unimp();
 	}
 }
 
+/// exists the program with an error about a malformed something, where
+/// what the something is is provided by the caller (e.g.: chr literal)
 fn malformed<'a>(exprkind: &'a str, pos: (usize, usize)) -> ! {
 	println!("error: malformed {exprkind}: {}:{}", pos.0, pos.1);
+	exit(1)
+}
+
+fn unimp() -> ! {
+	println!("yeah, uh, sooooo, i haven't implemented this :b");
 	exit(1)
 }
 
@@ -302,7 +362,7 @@ fn check(expr: Expr) -> Result<Expr, ()> {
 				right: Box::new(Expr::Num(5)),
 				op: '+',
 			}),
-			ismut: false,
+			is_mut: false,
 		},
 	]
 	which would then resolve as:
@@ -311,7 +371,7 @@ fn check(expr: Expr) -> Result<Expr, ()> {
 			id: "x".into(),
 			kind: VarKind::Num,
 			val: Box::new(Expr::Num(10)),
-			ismut: false,
+			is_mut: false,
 		},
 	]
 */

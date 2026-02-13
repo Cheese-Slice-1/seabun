@@ -4,7 +4,7 @@ use ecow::{EcoString, EcoVec};
 extern crate logos;
 extern crate chumsky;
 
-use logos::{Logos, Lexer, Skip};
+use logos::{Lexer, Logos, Skip};
 
 // use chumsky::prelude::*;
 
@@ -28,9 +28,11 @@ pub struct Token {
 #[derive(Clone, Debug, PartialEq)]
 #[logos(extras=(usize, usize))]
 #[logos(skip (r#"\s+?"#, |l| {
-	if l.slice().chars().any(|c| c == '\n') {
-		l.extras.0 += 1;
-		l.extras.1 = l.span().end;
+	for c in l.slice().chars() {
+		if c == '\n' {
+			l.extras.0 += 1;
+			l.extras.1 = l.span().end;
+		}
 	}
 	Skip
 }))]
@@ -138,6 +140,18 @@ pub enum TokenKind {
 	
 	#[regex("else", priority=60)]
 	Else,
+
+	#[regex("loop", priority=60)]
+	Loop,
+
+	#[regex("while", priority=60)]
+	While,
+
+	#[regex("every", priority=60)]
+	Every,
+
+	#[regex("do", priority=60)]
+	Do,
 	
 	/* NON-KEYWORD-BASED TOKENS */
 	
@@ -147,11 +161,11 @@ pub enum TokenKind {
 	#[regex(r"[\d]*d[\d]+", priority=40)]
 	Dot, // 1d5, d103, -9d9
 	
-	#[regex(r#""([^"\\\x00-\x1F]|\\(["\\bnfrt]|u[a-fA-F0-9]{4}|x[a-fA-F0-9]{2}))+?""#, priority=40)]
+	#[regex(r#"""|"([^"\\\x00-\x1F]|\\(["\\bnfrt]|u[a-fA-F0-9]{4}|x[a-fA-F0-9]{2}))+?""#, priority=40)]
 	Str, // "hola", "HOLA", "HoLa123", "\""
 	
 	// ONE character or escape
-	#[regex(r#"'([^'\\\x00-\x1F]|\\(['\\bnfrt]|u[a-fA-F0-9]{4}|x[a-fA-F0-9]{2}))'"#, priority=40)]
+	#[regex(r#"''|'([^'\\\x00-\x1F]|\\(['\\bnfrt]|u[a-fA-F0-9]{4}|x[a-fA-F0-9]{2}))'"#, priority=40)]
 	Chr, // 'c', '\u6F', '\\', '\'', '\n'
 	
 	#[regex("true|false|yes|no", priority=40)]
@@ -224,18 +238,17 @@ pub enum Expr {
 	/* COMPLEX COMPOUND EXPRESSIONS */
 	/* they produce an Expr::Empty value and a VarType::Unknown kind (tl;dr: can't be values) */
 	
-	/// represents a new push to the stack or allocation on the heap
-	Bind { // e.g. let s = "". -> Decl {id: "s".into(), kind: VarKind::Str, val: Box::new(Expr::Str("a".to_owned())), ismut: false}
+	/// represents a new push to the stack, allocation on the heap, or type definition
+	Bind { // e.g. let s = "". -> Decl {id: "s".into(), kind: VarKind::Str, val: Box::new(Expr::Str("a".to_owned())), is_mut: false}
 		id: EcoString,
-		kind: VarKind,
+		kind: BindKind,
 		val: Box<Expr>,
-		ismut: bool,
 	},
 
-	/// represents a change to an already existing variable
+	/// represents a change to an already existing mutable binding
 	ReBind { // e.g. 
 		id: EcoString,
-		kind: VarKind,
+		kind: BindKind,
 		val: Box<Expr>,
 	}
 }
@@ -279,20 +292,30 @@ pub enum VarKind {
 	Unknown,
 }
 
+// TODO: use this instead of "is_mut"
+#[derive(Clone, Debug, PartialEq)]
+pub enum BindKind {
+	Value (VarKind),
+	MutValue (VarKind),
+	Define (VarKind),
+}
+
 /// converts lex's captures to "Token"s
 pub fn tokenize(lex: &mut Lexer<TokenKind>) -> EcoVec<Token> {
 	lex.clone()
 		.spanned() // gives (kind, span)
 		.map(|el| { // el = one (kind, span) pair
 			lex.next(); // advance lexer to get the slices
+
 			println!("token:\n{}\n----------", lex.slice()); // visualize current slice
+
 			Token {
 				kind: el.0.unwrap_or_else(|_| TokenKind::Error), // if it can't be unwrapped it's an ERROR!!
 				
 				literal: lex.slice().trim().into(), // literal
 				
 				pos: { // line and column
-					let line = lex.extras.0;
+					let line = lex.extras.0 + 1;
 					let column = lex.span().start - lex.extras.1;
 					(line, column)
 				}
