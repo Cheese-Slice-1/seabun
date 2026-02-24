@@ -70,7 +70,7 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 			_ => {}
 		}
 
-		println!("{:#?}\n", res.last());
+		//println!("{:#?}\n", res.last());
 
 		i += 1;
 	}
@@ -151,7 +151,7 @@ fn parse_bind(tokens: EcoVec<Token>, bind_kind: (bool, bool)) -> Expr {
 			(false, true) => BindKind::Define(holds)
 		},
 		val: Box::new(parse_val(
-			(*value.unwrap()).into(),
+			(*value.unwrap_or_else(|| malformed("declaration", errpos))).into(),
 			errpos,
 			false
 		)),
@@ -226,10 +226,9 @@ fn parse_val(value: EcoVec<Token>, errpos: (usize, usize), isnested: bool) -> Ex
 				);
 
 				Expr::Str(unescaped)
-
 			},
 
-			Token {kind: TokenKind::RParen, ..} => res,
+			Token {kind: TokenKind::RParen, ..} => if isnested { res } else { malformed("expression", errpos) },
 			
 			_ => malformed("or unimplemented expression", errpos), // TODO: parse other single-token expressions
 		};
@@ -296,20 +295,20 @@ fn parse_val(value: EcoVec<Token>, errpos: (usize, usize), isnested: bool) -> Ex
 pub fn to_varkind(toks: EcoVec<Token>, pos: (usize, usize)) -> VarKind {
 	// predefined literals
 	if toks.len() < 2 {
-		let Some(tok) = toks.get(0) else { malformed("declaration", pos) };
-		match &tok.literal[..] {
+		let Some(tok) = toks.get(0) else { return VarKind::Unknown; };
+		return match &tok.literal[..] {
 			"num" => VarKind::Num,
 			"dot" => VarKind::Dot,
 			"chr" => VarKind::Chr,
 			"str" => VarKind::Str,
 			"bln" => VarKind::Bln,
 			_ => VarKind::Unknown, // non-primitive (like custom types, tuples, arrays and records)
-		}
-	} else {
-		// TODO: implement complex types like funs, recs, arrays, etc.
-		// very important so remember eh?
-		unimp();
+		};
 	}
+	
+	// TODO: implement complex types like funs, recs, arrays, etc.
+	// very important so remember eh?
+	unimp();
 }
 
 /// exists the program with an error about a malformed something, where

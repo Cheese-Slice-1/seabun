@@ -129,6 +129,9 @@ pub enum TokenKind {
 	#[regex("fun", priority=60)]
 	Fun, // function literal; fun: parameter type, ... -> type
 
+	#[regex("give", priority=60)]
+	Return,
+
 	#[regex("rec", priority=60)]
 	Rec, // record literal; rec: field type, ...!
 	
@@ -263,8 +266,8 @@ pub enum VarKind {
 	Chr,
 	Bln,
 	Ref (Box<VarKind>), // reference to a type
-	Arr (Box<VarKind>, usize),
-	Tup (EcoVec<VarKind>), // length is the number of varkinds
+	Arr (Box<VarKind>, usize), // the usize is the number of elements of the array
+	Tup (EcoVec<VarKind>),
 
 	// records may only differ in property names.
 	// as they are part of the type itself, it's easy to compare them and cast them
@@ -307,7 +310,7 @@ pub fn tokenize(lex: &mut Lexer<TokenKind>) -> EcoVec<Token> {
 		.map(|el| { // el = one (kind, span) pair
 			lex.next(); // advance lexer to get the slices
 
-			println!("token:\n{}\n----------", lex.slice()); // visualize current slice
+			//println!("token:\n{}\n----------", lex.slice()); // visualize current slice
 
 			Token {
 				kind: el.0.unwrap_or_else(|_| TokenKind::Error), // if it can't be unwrapped it's an ERROR!!
