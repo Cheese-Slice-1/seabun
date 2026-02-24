@@ -25,7 +25,7 @@ pub struct Token {
 	4. IDs y tipos
 */
 #[derive(Logos)]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[logos(extras=(usize, usize))]
 #[logos(skip (r#"\s+?"#, |l| {
 	for c in l.slice().chars() {
@@ -129,7 +129,7 @@ pub enum TokenKind {
 	#[regex("fun", priority=60)]
 	Fun, // function literal; fun: parameter type, ... -> type
 
-	#[regex("give", priority=60)]
+	#[regex("give|back", priority=60)]
 	Return,
 
 	#[regex("rec", priority=60)]
@@ -327,3 +327,14 @@ pub fn tokenize(lex: &mut Lexer<TokenKind>) -> EcoVec<Token> {
 		.filter(|el| el.kind != TokenKind::Comment)
 		.collect()
 }
+
+const NO_VAL_PREFIX_KIND: [TokenKind; 8] = [
+	TokenKind::LParen,
+	TokenKind::LBracket,
+	TokenKind::Num,
+	TokenKind::Dot,
+	TokenKind::Chr,
+	TokenKind::Str,
+	TokenKind::Fun,
+	TokenKind::Word,
+];
