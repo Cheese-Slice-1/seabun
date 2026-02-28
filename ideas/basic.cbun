@@ -9,7 +9,7 @@ let is_this_a_joke = no.
 mut water_is_bad = false.
 let initial = '\x73'.
 mut name = "seabun".
-def int = num. ; type binding
+def int num. ; type binding
 
 ; goal 1: simple compound expressions as a value
 ;let c = 1 + 2.
@@ -20,12 +20,19 @@ def int = num. ; type binding
 ;  show "hi".
 ;}
 
-; goal2 : parse functions
+; goal 2 : parse functions
+; 2.1
 ;give 1. ; first give statements
+; 2.2
 ;fun: x num { show x as str. }. ; then function values
 ; ^ type "fun:num"
+; 2.3
 ;let append_two = fun: first chr, second chr -> str { give [first, second] as str}
+; 2.4
 ;append_two: 'h', 'i'! ; and fun calls!!
+; 2.5
 ;append_two: second = 'i', first = 'h'! ; should be the same as the above
 
-; goal: parse 
+; goal: parse a main expression (consists of a single expression)
+; note: there can only be one main in every application
+; main show "hi".

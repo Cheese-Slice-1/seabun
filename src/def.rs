@@ -49,15 +49,15 @@ pub enum TokenKind {
 	ExprEnd, // end of an expression
 
 	#[regex(",", priority=100)]
-	Comma,
+	Comma, // separates expressions
 
 	#[regex("=", priority=100)]
-	EqSign,
+	EqSign, // usu. used for assigning bindings
 
 	#[regex(":", priority=100)]
 	Colon, // separates name from parameter/argument list
 	
-	#[regex("[!]", priority=100)]
+	#[regex("!", priority=100)]
 	Bang, // ends parameter/argument list
 
 	#[regex("[(]", priority=100)]
@@ -67,10 +67,10 @@ pub enum TokenKind {
 	RParen, // nested expr end
 
 	#[regex(r"\[", priority=100)]
-	LBracket, // nested expr start
+	LBracket, // array start
 	
 	#[regex(r"\]", priority=100)]
-	Rbracket, // nested expr end
+	Rbracket, // array end
 
 	#[regex("[{]", priority=100)]
 	LBrace, // block start
@@ -97,25 +97,30 @@ pub enum TokenKind {
 	Slash,
 
 	#[regex(r"\^", priority=100)]
-	Caret,
+	Caret, // power (x^y)
 
 	#[regex("%", priority=100)]
-	Percent,
+	Percent, // modulo (x%y)
 
 	#[regex("#", priority=100)]
-	Hash,
+	Hash, //
 	
 	#[regex("@", priority=100)]
-	AtSign,
+	AtSign, // get the address of smth (bc it's read at)
 
 	#[regex("->", priority=100)]
 	Arrow, // will denote return type for funs and mabe smth more??
 
 	/* KEYWORS-BASED TOKENS */
 
-	// #[regex("->", priority=100)]
+	#[regex("show", priority=60)]
+	Show, // print a chr/str to screen (no newline); builtin
+
+	#[regex("read", priority=60)]
+	Read, // read a str from stdin; builtin
+
 	#[regex("as", priority=60)]
-	As, // casting
+	As, // type casting
 	
 	#[regex("let", priority=60)]
 	Let, // immutable binding declaration
@@ -183,6 +188,7 @@ pub enum TokenKind {
 }
 
 /// every possible Seabun expression
+#[allow(unused)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
 	/* SIMPLE EXPRESSIONS */
@@ -191,8 +197,11 @@ pub enum Expr {
 	/// empty expression; throws an error in declarations
 	Empty,
 
-	/// integer
-	Num (i64),
+	/// signed integer
+	Num (isize),
+
+	/// unsigned integer
+	Pos (usize),
 	
 	/// float
 	Dot (f64),
@@ -215,16 +224,16 @@ pub enum Expr {
 	/// a single block
 	Block (EcoVec<Expr>),
 
-	/// tuple
+	/// tuple literal. e.g. {{1, 2}}; {{'a', 62, }}
 	Tup (EcoVec<Expr>),
 
 	/// array
 	Arr (EcoVec<Expr>, VarKind), // varkind = first value's varkind
 	
-	/// record
-	Rec (HashMap<EcoString, Expr>),
+	/// record literal. e.g rec: x num!;
+	Rec (HashMap<EcoString, (Expr, VarKind)>), // TODO: rethink this type of expression asap
 
-	/// function literal; like fun: arg num! {}
+	/// function literal. e.g. fun: arg num {}; fun -> chr {}; fun: arg num -> chr {}
 	Fun { 
 		kind: VarKind, // return type
 		args: (usize, HashMap<EcoString, VarKind>), // argument types + names
@@ -232,7 +241,7 @@ pub enum Expr {
 	},
 	
 	/// arithmetic operation
-	Op { //x+y, x-y, x*y, x/y, x^x, x%x
+	MathOp { //x+y, x-y, x*y, x/y, x^x, x%x
 		left: Box<Expr>,
 		right:Box<Expr>,
 		op: char,
@@ -242,16 +251,15 @@ pub enum Expr {
 	/* they produce an Expr::Empty value and a VarType::Unknown kind (tl;dr: can't be values) */
 	
 	/// represents a new push to the stack, allocation on the heap, or type definition
-	Bind { // e.g. let s = "". -> Decl {id: "s".into(), kind: VarKind::Str, val: Box::new(Expr::Str("a".to_owned())), is_mut: false}
+	Bind { // e.g. let s = "". -> Bind {id: "s".into(), kind: (BindKind::Value, VarKind::Str), val: Box::new(Expr::Str("a".into()))}
 		id: EcoString,
-		kind: BindKind,
+		kind: (BindKind, VarKind),
 		val: Box<Expr>,
 	},
 
 	/// represents a change to an already existing mutable binding
-	ReBind { // e.g. 
+	ReBind { // e.g. a = 2. -> ReBind {id: "a".into(), val: Box::new(Expr::Num(2))}
 		id: EcoString,
-		kind: BindKind,
 		val: Box<Expr>,
 	}
 }
@@ -260,11 +268,14 @@ pub enum Expr {
 /// these only contain essential info
 #[derive(Clone, Debug, PartialEq)]
 pub enum VarKind {
-	Num,
-	Dot,
-	Str,
-	Chr,
+	Num, // = isize
+	Dot, // like fsize
+	Str, // = [u8]
+	Chr, // = u8
 	Bln,
+	NumX (NBit), // nXX
+	DotX (NBit),
+	ChrX (NBit), // UTF-X
 	Ref (Box<VarKind>), // reference to a type
 	Arr (Box<VarKind>, usize), // the usize is the number of elements of the array
 	Tup (EcoVec<VarKind>),
@@ -288,19 +299,29 @@ pub enum VarKind {
 	// as the arguments and return type are part of the type, you can cast them
 	Fun (HashMap<EcoString, VarKind>, Box<VarKind>),
 
-	// these is the equivalent of a rust unit
+	// these is the equivalent of a rust unit; internally 0(?)
 	Unit,
 
 	// resolves in the AST's second pass; if not, throws error
 	Unknown,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum NBit {
+	T8,
+	T16,
+	T32,
+	T64,
+	T128,
+	TSize
+}
+
 // TODO: use this instead of "is_mut"
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BindKind {
-	Value (VarKind),
-	MutValue (VarKind),
-	Define (VarKind),
+	Value,
+	MutValue,
+	Define,
 }
 
 /// converts lex's captures to "Token"s
@@ -328,9 +349,37 @@ pub fn tokenize(lex: &mut Lexer<TokenKind>) -> EcoVec<Token> {
 		.collect()
 }
 
-const NO_VAL_PREFIX_KIND: [TokenKind; 8] = [
+impl Expr {
+	// TODO: implement AST v2 using this to check if an expr is Expr::Empty
+	#[inline]
+	fn check(expr: &Self) -> bool {
+		*expr == Expr::Empty
+	}
+}
+
+#[macro_export]
+macro_rules! get_t {
+	($from:expr) => {
+		EcoString::from(std::any::type_name_of_val($from))
+	};
+
+	($($from:expr),+) => { {
+			let origin = [$($from),+];
+			let mut res = EcoVec::<EcoString>::with_capacity(origin.len());
+			for val in origin.iter() {
+				res.push(std::any::type_name_of_val(val).into());
+			}
+			res
+		}
+	};
+}
+
+// dirty ass solution but imo easy to use, sorry for your eyes :P
+#[allow(unused)]
+const NO_VAL_PREFIX: [TokenKind; 9] = [
 	TokenKind::LParen,
 	TokenKind::LBracket,
+	TokenKind::LDblBrace,
 	TokenKind::Num,
 	TokenKind::Dot,
 	TokenKind::Chr,

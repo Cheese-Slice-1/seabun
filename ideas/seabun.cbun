@@ -1,17 +1,17 @@
-# foo func
-# comments work!!
+; foo func
+; comments work!!
 
-#! doc comment
-#! this function does something
-let foo = fun: a num, b dot! {
-	say: "so...\n"!.
-	say: "a is ", a as str, "\n"!.
-	sayln: "b is ", b as str!. # automatic new line
+;! doc comment
+;! this function does something
+let foo = fun: a num, b dot {
+	show "so...\n".
+	show "a is ", a as str, "\n".
+	showln: "b is ", b as str!. ; automatic new line
 }.
 
-let bar = fun str: a num, b dot! {
+let bar = fun: a num, b dot -> str {
 	if a > b {
-		give a as str. # give = return
+		give a as str. ; give = return
 	} elif b > a {
 		give b as str.
 	} else {
@@ -19,37 +19,34 @@ let bar = fun str: a num, b dot! {
 	}
 }.
 
-let fibb = fun num: nth num! {
+let fibb = fun: nth num -> num {
 	if n <= 1 { give clip: nth, 0!. }
 	
 	give (fibb: n - 1! + fibb: nth - 2!).
-}
+}.
 
-# function that takes a function and applies it twice
-let dotwice = fun: f fun: num;, x num; {
+; function that takes a function and applies it twice
+let dotwice = fun: f fun: num!, x num {
 	f: x!.
 	f: x!.
-}
+}.
 
-# :(...); is the same as :(...)!
-# use whichever you want
-
-# record called user with named fields
-#! doc comment
+; record called user with named fields
+;! doc comment
 def person rec:
 	name str,
 	surnames []str,
 	age num,
 	likes []str,
-	hates []str!.
+	hates []str.
 
-# named tuple called rgb
+; named tuple called rgb
 def rgb {{num, num, num}}.
 
-# a "main" (entry point) block is also an expression, so it requires a dot
+; a "main" (entry point) block is also an expression, so it requires a dot
 main {
 	let first num = 10.
-	let second dot = 1d5. # d stands for dot
+	let second dot = 1d5. ; d stands for dot
 
 	foo: first, second!.
 
@@ -57,8 +54,8 @@ main {
 
 	let fibb5 = fibb: 5!.
 
-	# named parameters are optional, you can use positional
-	# ones instead
+	; named parameters are optional, you can use positional
+	; ones instead
 	let johndoe person = rec:
 		name = "John",
 		surnames = ["Doe", "Smith"],
@@ -66,11 +63,11 @@ main {
 		likes = ["icecream", "chocolate", "programming"],
 		hates = ["bugs", "brainrot", ""]!.
 
-	# instantiation of tuple types
+	; instantiation of tuple types
 	let grassygreen rgb = {{197, 255, 0}}.
 	let puregreen rgb = {{0x00, 0xFF, 0x00}}.
 
-	# a closure argument; here ";" is also the same as "!"
+	; a closure argument! here "!" is also the same as "!"
 	dotwice:
-		fun: a num; { sayln: a!. }!.
+		fun: a num! { sayln: a!. }!.
 }.

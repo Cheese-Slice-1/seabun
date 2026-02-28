@@ -7,6 +7,7 @@ use ecow::{EcoString, EcoVec/*, eco_vec*/};
 use unescaper::unescape;
 
 use crate::def::{Token, TokenKind, Expr, VarKind, BindKind};
+use crate::{get_t};
 
 // TODO: defined ids; move it to where it belongs!!
 //static mut BINDINGS: EcoVec<(String, Expr)> = eco_vec![];
@@ -31,9 +32,9 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 				i += bind.len() - 1;
 
 				let bind_params = match &literal[..] { // NOTE: don't use kind. do not. please.
-					"mut" => (true, false),		// mutable
-					"let" => (false, false),	// mutablen't (badum tsss)
-					"def" => (false, true),		// mutablen't and a "typedef" (b a d u m   t s s s)
+					"mut" => BindKind::MutValue,		// mutable
+					"let" => BindKind::Value,	// mutablen't (badum tsss)
+					"def" => BindKind::Define,		// mutablen't and a "typedef" (b a d u m   t s s s)
 					_ => panic!("this shouldn't happen!! wtf!!!!"),
 				};
 
@@ -90,9 +91,7 @@ pub fn advanced_ast(_ast: EcoVec<Expr>) -> EcoVec<Expr> {
 /// takes two parameters:
 /// - "tokens": the vector of tokens that conform the bind
 /// - "bind_kind": the chosen bind type as a bool pair representing (IS_MUT, IS_DEF)
-fn parse_bind(tokens: EcoVec<Token>, bind_kind: (bool, bool)) -> Expr {
-	//use std::any::type_name_of_val;
-
+fn parse_bind(tokens: EcoVec<Token>, bind_kind: BindKind) -> Expr {
 	// line and column of malformed/unknown token
 	let errpos = tokens[0].pos;
 
@@ -104,12 +103,14 @@ fn parse_bind(tokens: EcoVec<Token>, bind_kind: (bool, bool)) -> Expr {
 		.collect::<EcoVec<_>>();
 	
 	/*
-	for part in parts {
+	for &part in &parts {
 		println!("contains:\n{:#?}\n", part);
-		println!("is type:\n{:?}", std::any::type_name_of_val(&part));
+		println!("is type:\n{}", get_t!(part));
 		println!();
 	}
 	*/
+
+	// return Expr::Empty;
 
 	// if there's nothing between let/mut/def and "=", scream "malformed declaration"
 	if parts.get(0)
@@ -122,11 +123,11 @@ fn parse_bind(tokens: EcoVec<Token>, bind_kind: (bool, bool)) -> Expr {
 	let (name, var_kind, value) = (
 		parts
 			.get(0) // parts[0] contains both name and type
-			.unwrap_or_else(|| malformed("declaration", errpos))
+			.unwrap_or_else(|| malformed("declaration (missing name and type)", errpos))
 			.get(0), // variable name; obligatory
 		parts
 			.get(0)
-			.unwrap_or_else(|| malformed("declaration", errpos))
+			.unwrap_or_else(|| malformed("declaration (missing name and type)", errpos))
 			.get(1..), // variable type
 		parts
 			.get(1) // variable value
@@ -145,16 +146,16 @@ fn parse_bind(tokens: EcoVec<Token>, bind_kind: (bool, bool)) -> Expr {
 			.unwrap()
 			.literal
 			.clone(),
-		kind: match bind_kind {
-			(true, _) => BindKind::MutValue(holds),
-			(false, false) => BindKind::Value(holds), //
-			(false, true) => BindKind::Define(holds)
-		},
-		val: Box::new(parse_val(
-			(*value.unwrap_or_else(|| malformed("declaration", errpos))).into(),
-			errpos,
-			false
-		)),
+		kind: (bind_kind, holds),
+		val: match bind_kind {
+			BindKind::Define => Box::new(Expr::Empty),
+			_ => Box::new(parse_val(
+				(*value.unwrap_or_else(|| malformed("declaration", errpos)))
+					.into(), // sorry for the nesting ;^;
+				errpos,
+				false
+			)),
+		}
 	}
 }
 
@@ -169,6 +170,8 @@ fn parse_val(value: EcoVec<Token>, errpos: (usize, usize), isnested: bool) -> Ex
 	// expression to return
 	let mut res = Expr::Empty;
 
+	if value.is_empty() { return res; }
+
 	// single token expression
 	if value.len() == 1 {
 		return match &value[0] { // kind (Expr) isn't Cow (clone-on-write)
@@ -178,7 +181,7 @@ fn parse_val(value: EcoVec<Token>, errpos: (usize, usize), isnested: bool) -> Ex
 			// a integer
 			Token {kind: TokenKind::Num, literal, pos} => Expr::Num (
 				literal
-					.parse::<i64>()
+					.parse::<isize>()
 					.unwrap_or_else(|_| malformed("num literal", *pos))
 			),
 
@@ -312,14 +315,25 @@ pub fn to_varkind(toks: EcoVec<Token>, pos: (usize, usize)) -> VarKind {
 }
 
 /// exists the program with an error about a malformed something, where
-/// what the something is is provided by the caller (e.g.: chr literal)
+/// what the something is is provided by the caller (e.g. "chr literal")
+#[allow(unused)]
+#[inline]
 fn malformed<'a>(exprkind: &'a str, pos: (usize, usize)) -> ! {
 	println!("error: malformed {exprkind}: {}:{}", pos.0, pos.1);
 	exit(1)
 }
 
+#[allow(unused)]
+#[inline]
 fn unimp() -> ! {
 	println!("yeah, uh, sooooo, i haven't implemented this :b");
+	exit(1)
+}
+
+#[allow(unused)]
+#[inline]
+fn stop_here() -> ! {
+	println!("testing smth, stopping exec!!");
 	exit(1)
 }
 
@@ -329,16 +343,6 @@ fn unknown_tok(tok: EcoString, pos: (usize, usize)) -> ! {
 	exit(1)
 }
 */
-
-// TODO: implement AST v2 using this to check if an expr is Expr::Empty
-fn check(expr: Expr) -> Result<Expr, ()> {
-	if expr == Expr::Empty {
-		println!("");
-		return Err(());
-	}
-
-	Ok(expr)
-}
 
 /*
 	implementation should turn (simplified):
