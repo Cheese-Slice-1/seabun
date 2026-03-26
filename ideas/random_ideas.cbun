@@ -1,0 +1,17 @@
+let a1 []num. ; array? or slice? prob slice
+let b1 [10]num. ; array 100%
+let c1 @num. ; (*) pointer to num
+mut a2 []num. ; mutable slice???
+mut b2 [10]num. ; mutable array
+mut c2 @num. ; mutable pointer to num
+let s1 str. ; slice of chars (string)
+mut s2 [30]chr. ; array of 30 chrs (string)
+let s3 @chr. ; (*) c style string
+
+def my_data rec: title str, content str.
+
+let data1 my_data.
+let data2 []my_data. ; slice of struct
+let data3 @my_data. ; (*) pointer to struct
+
+; (*) imo pointers have no use as uninitialized immutable variables, but eh. do what you wanna do, idfc.
