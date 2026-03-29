@@ -6,8 +6,7 @@ use std::process::exit;
 use ecow::{EcoString, EcoVec/*, eco_vec*/};
 use unescaper::unescape;
 
-use crate::def::{Token, TokenKind, Expr, VarKind, BindKind};
-use crate::{get_t};
+use crate::def::{Token, TokenKind, Expr, VarKind, BindKind, CodePos};
 
 // TODO: defined ids; move it to where it belongs!!
 //static mut BINDINGS: EcoVec<(String, Expr)> = eco_vec![];
@@ -112,7 +111,7 @@ fn parse_bind(tokens: EcoVec<Token>, bind_kind: BindKind) -> Expr {
 
 	// return Expr::Empty;
 
-	// if there's nothing between let/mut/def and "=", scream "malformed declaration"
+	// if there's nothing between let/mut/def and "=", SCREAAAM "malformed declaration"
 	if parts.get(0)
 		.unwrap_or_else(|| malformed("declaration", errpos))
 		.is_empty()
@@ -166,7 +165,7 @@ fn parse_rebind(_tokens: EcoVec<Token>) -> Expr {
 /* SIMPLE EXPRESSIONS GENERATORS */
 
 /// precedence-based non-composite expression parser
-fn parse_val(value: EcoVec<Token>, errpos: (usize, usize), isnested: bool) -> Expr {
+fn parse_val(value: EcoVec<Token>, errpos: CodePos, isnested: bool) -> Expr {
 	// expression to return
 	let mut res = Expr::Empty;
 
@@ -177,8 +176,8 @@ fn parse_val(value: EcoVec<Token>, errpos: (usize, usize), isnested: bool) -> Ex
 		return match &value[0] { // kind (Expr) isn't Cow (clone-on-write)
 			// a variable/type/etc. name
 			Token {kind: TokenKind::Word, literal, ..} => Expr::Name(literal.clone()),
-
 			// a integer
+
 			Token {kind: TokenKind::Num, literal, pos} => Expr::Num (
 				literal
 					.parse::<isize>()
@@ -218,17 +217,31 @@ fn parse_val(value: EcoVec<Token>, errpos: (usize, usize), isnested: bool) -> Ex
 				Expr::Chr(raw)
 			},
 
-			Token {kind: TokenKind::Str, literal, pos, ..} => {
-				let unescaped = EcoString::from(
-					unescape(
-						literal
-							.get(1..literal.len()-1)
-							.unwrap_or("")
-					)
-					.unwrap_or_else(|_| malformed("str literal", *pos))
+			// do NOT try collapse them into one
+			// it'll bring destruction to the compiler
+			Token {kind: TokenKind::Str, literal, pos} => {
+				let unescaped = unescape(
+					&unbun_str(TokenKind::Str, literal, *pos)[..]) // dumbass everything
+						.unwrap_or_else(|_| {
+							dumbass_compiler(TokenKind::Str, literal)
+						}
 				);
 
-				Expr::Str(unescaped)
+				println!("{unescaped}");
+
+				Expr::Str(unescaped.into())
+			},
+			Token {kind: TokenKind::RawStr, literal, pos} => {
+				let unescaped = unescape(
+					&unbun_str(TokenKind::RawStr, literal, *pos)[..]) // dumbass everything
+						.unwrap_or_else(|_| {
+							dumbass_compiler(TokenKind::RawStr, literal)
+						}
+				);
+
+				println!("{unescaped}");
+
+				Expr::Str(unescaped.into())
 			},
 
 			Token {kind: TokenKind::RParen, ..} => if isnested { res } else { malformed("expression", errpos) },
@@ -295,7 +308,7 @@ fn parse_val(value: EcoVec<Token>, errpos: (usize, usize), isnested: bool) -> Ex
 
 /* UTILS */
 
-pub fn to_varkind(toks: EcoVec<Token>, pos: (usize, usize)) -> VarKind {
+pub fn to_varkind(toks: EcoVec<Token>, pos: CodePos) -> VarKind {
 	// predefined literals
 	if toks.len() < 2 {
 		let Some(tok) = toks.get(0) else { return VarKind::Unknown; };
@@ -311,14 +324,44 @@ pub fn to_varkind(toks: EcoVec<Token>, pos: (usize, usize)) -> VarKind {
 	
 	// TODO: implement complex types like funs, recs, arrays, etc.
 	// very important so remember eh?
-	unimp();
+
+	let mut ret = VarKind::Unknown;
+
+	for (i, tok) in toks.iter().enumerate() {
+		println!("{i}) {tok:#?}");
+	}
+
+	unimp()
+}
+
+fn unbun_str<'a>(kind: TokenKind, string: &EcoString, pos: CodePos) -> EcoString {
+	match kind {
+		TokenKind::Str => {
+			let end = string.len() - 1;
+			string
+				.get(1..end)
+				.unwrap_or_else(|| malformed("string literal", pos))
+				.into()
+		},
+		TokenKind::RawStr => {
+			let end = string.len() - 2;
+			string
+				.get(2..end)
+				.unwrap_or_else(|| malformed("raw string literal", pos))
+				.into()
+		},
+		_ => {
+			println!("that is not a string, you mf dumbass compiler: {string:#?}");
+			exit(2)
+		}
+	}
 }
 
 /// exists the program with an error about a malformed something, where
 /// what the something is is provided by the caller (e.g. "chr literal")
 #[allow(unused)]
 #[inline]
-fn malformed<'a>(exprkind: &'a str, pos: (usize, usize)) -> ! {
+fn malformed<'a>(exprkind: &str, pos: CodePos) -> ! {
 	println!("error: malformed {exprkind}: {}:{}", pos.0, pos.1);
 	exit(1)
 }
@@ -334,11 +377,18 @@ fn unimp() -> ! {
 #[inline]
 fn stop_here() -> ! {
 	println!("testing smth, stopping exec!!");
-	exit(1)
+	exit(2)
+}
+
+#[allow(unused)]
+#[inline]
+fn dumbass_compiler(whatever: TokenKind, literal: &EcoString) -> ! {
+	println!("that is not a {whatever:?}, you mf dumbass compiler: {literal}");
+	exit(2)
 }
 
 /*
-fn unknown_tok(tok: EcoString, pos: (usize, usize)) -> ! {
+fn unknown_tok(tok: EcoString, pos: CodePos) -> ! {
 	println!("error: unknown token \"{tok}\" at {}:{}", pos.0, pos.1);
 	exit(1)
 }

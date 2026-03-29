@@ -1,15 +1,29 @@
 ; goal 0: bindings
 
 ;! docs of a very important immutable binding
-let a = 1.
-mut b = 2d0.
-let am_i_cool = yes.
-mut seabun_is_great = true.
-let is_this_a_joke = no.
-mut water_is_bad = false.
-let initial = '\x73'.
-mut name = "seabun".
-def int num. ; type binding
+;let a = 1. ; num by default
+; uints are called unum
+
+;mut b = 2d0. ; dot by default
+
+;let am_i_cool = yes. ; bln
+;mut seabun_is_great = true.
+;let is_this_a_joke = no.
+;mut water_is_bad = false.
+
+;let initial = '\x73'. ; chr (usu. c8) by default
+;mut name = "seabun". ; str (usu. s8) by default (same for "<<...>>" strings)
+;let quirky = <<hi, i am a quirky string. no, there are no escapes\x2E>>.
+; show quirky. ; -> "yes, i am quiky. no, no escapes\x2E" (raw! not a dot! :D)
+
+;def int num. ; type binding
+;def cchar n8.
+
+;def num_array [10]num.
+;def num_tuple {{num, num}}.
+;def my_record rec: x dot, y dot.
+def my_cool_fun fun: num -> num.
+;def result |ok, error|. ; an enum; defaults to unum representation
 
 ; goal 1: simple compound expressions as a value
 ;let c = 1 + 2.
@@ -17,7 +31,8 @@ def int num. ; type binding
 
 ; goal: parse blocks
 ;{
-;  show "hi".
+;    show "hi!\n".
+;    show <<well hello there!>>, '\n'.
 ;}
 
 ; goal 2 : parse functions
@@ -36,3 +51,8 @@ def int num. ; type binding
 ; goal: parse a main expression (consists of a single expression)
 ; note: there can only be one main in every application
 ; main show "hi".
+; main {
+;    show "hi\n".
+;    show "i am a seabun program\n".
+;    show "have a nice day!\n"
+;}

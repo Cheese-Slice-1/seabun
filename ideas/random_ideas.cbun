@@ -1,12 +1,20 @@
 let a1 []num. ; array? or slice? prob slice
 let b1 [10]num. ; array 100%
 let c1 @num. ; (*) pointer to num
-mut a2 []num. ; mutable slice???
+mut a2 []num. ; mutable slice, essentially a vector
 mut b2 [10]num. ; mutable array
 mut c2 @num. ; mutable pointer to num
 let s1 str. ; slice of chars (string)
 mut s2 [30]chr. ; array of 30 chrs (string)
 let s3 @chr. ; (*) c style string
+
+; exact type sizes: 0, 8, 16, 32, 64, 128, size
+; prefixes:
+; - n: num
+; - u: unum
+; - d: dot (max 64)
+; - c: chr (max c32 (aka utf-32), min 8)
+; - s: str (s__ is like []c__, same rules)
 
 def my_data rec: title str, content str.
 
@@ -14,4 +22,48 @@ let data1 my_data.
 let data2 []my_data. ; slice of struct
 let data3 @my_data. ; (*) pointer to struct
 
-; (*) imo pointers have no use as uninitialized immutable variables, but eh. do what you wanna do, idfc.
+; (*) imo pointers have no use as uninitialized immutable variables, but eh. do what you wanna do, idfc :P
+
+let my_cute_function = fun -> str give "i'm cute". ; when only one expression??
+let my_sweet_function = fun -> [9]chr {
+	let result [9]chr = "i'm sweet".
+	give result.
+}.
+let myfun fun -> num. ; generates default function "fun -> num give 0."
+let zero = myfun!. ; compiler does `name (: (argument1, argument2, ...)) !/?`
+; myfun:!. is also valid, but way more verbose
+; will there be an error type??? (for `?`-checks i mean)
+; if not, what does `?` check for????? is it just for aesthetic purposes???
+; would defining it be like a record? or a tuple? or an enum?
+; maybe an error is a record, with a default `message str` field
+; like:
+;	def my_error err: message str
+
+let is_ok = true.
+let not_ok = false.
+let result = fun show "hello".
+let alternative1 = fun show "hi".
+let alternative2 = fun show "howdy".
+
+; if-else flow
+if is_ok result!.
+if not_ok result! else alternative1!.
+if not_ok result! else if not_ok alternative1! else alternative2!.
+; note that `else if` is not ONE condition, it's an else with a single-expression
+; body containing an if expression.
+
+; the same but with indent:
+if is_ok
+	result!. ; hello
+
+if not_ok
+	result!
+else
+	alternative1!. ; hi
+
+if not_ok
+	result!
+else if not_ok
+	alternative1!
+else
+	alternative2!. ; howdy

@@ -1,12 +1,12 @@
-; foo func
-; comments work!!
+; let=.
+; comments work!! otherwise it'd give an error
 
 ;! doc comment
 ;! this function does something
 let foo = fun: a num, b dot {
 	show "so...\n".
 	show "a is ", a as str, "\n".
-	showln: "b is ", b as str!. ; automatic new line
+	showln: "b is ", b as str!. ; automatic new line; builtin *function*
 }.
 
 let bar = fun: a num, b dot -> str {
@@ -31,7 +31,7 @@ let dotwice = fun: f fun: num!, x num {
 	f: x!.
 }.
 
-; record called user with named fields
+; record called user
 ;! doc comment
 def person rec:
 	name str,
@@ -42,6 +42,10 @@ def person rec:
 
 ; named tuple called rgb
 def rgb {{num, num, num}}.
+
+; enum called wind_direction
+; fields are num by default
+def wind |north, south, east, west|.
 
 ; a "main" (entry point) block is also an expression, so it requires a dot
 main {

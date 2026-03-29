@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use ecow::{EcoString, EcoVec};
 
 extern crate logos;
-extern crate chumsky;
 
 use logos::{Lexer, Logos, Skip};
 
@@ -13,8 +12,12 @@ use logos::{Lexer, Logos, Skip};
 pub struct Token {
 	pub kind: TokenKind, // what it is
 	pub literal: EcoString, // raw form
-	pub pos: (usize, usize), // position
+	pub pos: CodePos, // exact position
 }
+
+// a position in code
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CodePos (pub usize, pub usize);
 
 /*
 	PRIORIDADES:
@@ -36,16 +39,17 @@ pub struct Token {
 	}
 	Skip
 }))]
+#[repr(u8)]
 pub enum TokenKind {
 	/* SYMBOL-BASED TOKENS */
 
-	#[regex(r#";[^\x00-\x1F]*"#, priority=110)]
+	#[regex(r";[^\x00-\x1F]*", priority=110)]
 	Comment, // #a line comment
 	
-	#[regex(r";![^\x00-\x1F]+?", priority=120)]
+	#[regex(r";[*][^\x00-\x1F]+?", priority=120)]
 	Doc,
 
-	#[regex("[.]{1}", priority=100)]
+	#[regex("[.]", priority=100)]
 	ExprEnd, // end of an expression
 
 	#[regex(",", priority=100)]
@@ -78,10 +82,10 @@ pub enum TokenKind {
 	#[regex("[}]", priority=100)]
 	RBrace, // block end
 
-	#[regex("[{]{2}", priority=101)]
+	#[regex("[{][{]", priority=101)]
 	LDblBrace, // tuple literal start
 
-	#[regex("[}]{2}", priority=101)]
+	#[regex("[}][}]", priority=101)]
 	RDblBrace, // tuple literal end
 
 	#[regex("[+]", priority=100)]
@@ -91,10 +95,10 @@ pub enum TokenKind {
 	Minus,
 
 	#[regex("[*]", priority=100)]
-	Star,
+	Star, // multiplication
 
 	#[regex("/", priority=100)]
-	Slash,
+	Slash, // division (x/y)
 
 	#[regex(r"\^", priority=100)]
 	Caret, // power (x^y)
@@ -103,21 +107,36 @@ pub enum TokenKind {
 	Percent, // modulo (x%y)
 
 	#[regex("#", priority=100)]
-	Hash, //
+	Hash, // type-casts like "as"
 	
 	#[regex("@", priority=100)]
-	AtSign, // get the address of smth (bc it's read at)
+	AtSign, // like C "*T"; pointer type (@T) or "value at address" (bc it's read at lololol)
+
+	#[regex("~", priority=100)]
+	Tilde, // "address of"; a tilde because & is bitwise and
 
 	#[regex("->", priority=100)]
 	Arrow, // will denote return type for funs and mabe smth more??
 
+	#[regex("¬", priority=100)]
+	NotSign, // ¬a
+
+	#[regex("&", priority=100)]
+	Ampersand, // a & b
+
+	#[regex(r"\|", priority=100)]
+	Pipe, // a | b
+
+	#[regex(r"\\", priority=100)]
+	BackSlash, // a \ b
+
 	/* KEYWORS-BASED TOKENS */
 
 	#[regex("show", priority=60)]
-	Show, // print a chr/str to screen (no newline); builtin
+	Show, // print an array of chr-compatible elements to screen (no newline)
 
 	#[regex("read", priority=60)]
-	Read, // read a str from stdin; builtin
+	Read, // read a str from stdin
 
 	#[regex("as", priority=60)]
 	As, // type casting
@@ -150,13 +169,13 @@ pub enum TokenKind {
 	Else,
 
 	#[regex("loop", priority=60)]
-	Loop,
+	Loop, // rust-style infinite loop
 
 	#[regex("while", priority=60)]
 	While,
 
 	#[regex("every", priority=60)]
-	Every,
+	Every, // every x, [1, 2, 3] ...; basically a for-in or for-of loop
 
 	#[regex("do", priority=60)]
 	Do,
@@ -164,13 +183,18 @@ pub enum TokenKind {
 	/* NON-KEYWORD-BASED TOKENS */
 	
 	#[regex(r"\d+", priority=40)]
-	Num, // 1, 2, 3, 4
+	Num, // 1, 2, 3, 4; can be narrowed down to any num, unum, or chr type
 	
-	#[regex(r"[\d]*d[\d]+", priority=40)]
-	Dot, // 1d5, d103, -9d9
+	#[regex(r"[\d]+d[\d]*", priority=40)]
+	Dot, // 1d5, 0d103, -9d9; no "d.." because it'd be a type id
 	
-	#[regex(r#"""|"([^"\\\x00-\x1F]|\\(["\\bnfrt]|u[a-fA-F0-9]{4}|x[a-fA-F0-9]{2}))+?""#, priority=40)]
+	#[regex(r#"("")|(")([^"\\\x00-\x1F]|\\(["\\bnfrt]|u[a-fA-F0-9]{4}|x[a-fA-F0-9]{2}))+?(")"#, priority=40)]
 	Str, // "hola", "HOLA", "HoLa123", "\""
+
+	#[regex(r#"(<{2}>{2})|(<{2})([^\x00-\x1F]|\\>)+?(>{2})"#, priority=40)]
+	RawStr, // <<hola>>, <<HOLA>>, <<it's "fine"!>>, <<only escape is\>>> (only escape is >)
+	// i hope the quirky (raw) string doesn't get interpreted as a separate string inside a normal string hwlp-
+	// (or viceversa lmao)
 	
 	// ONE character or escape
 	#[regex(r#"''|'([^'\\\x00-\x1F]|\\(['\\bnfrt]|u[a-fA-F0-9]{4}|x[a-fA-F0-9]{2}))'"#, priority=40)]
@@ -179,7 +203,7 @@ pub enum TokenKind {
 	#[regex("true|false|yes|no", priority=40)]
 	Bln, // true, false
 
-	#[regex(r#"[^\d\s\x00-\x20.'"][^\s\x00-\x20.'"]*"#, priority=20)]
+	#[regex(r#"[\w][\w\d]*"#, priority=20)]
 	Word, // foo, bar_, _baz, bar2, seabun
 	
 	/* ERROR TYPE REPRESENTING (line, column) */
@@ -269,11 +293,13 @@ pub enum Expr {
 #[derive(Clone, Debug, PartialEq)]
 pub enum VarKind {
 	Num, // = isize
+	Unum, // = isize
 	Dot, // like fsize
 	Str, // = [u8]
 	Chr, // = u8
-	Bln,
+	Bln, // just bool
 	NumX (NBit), // nXX
+	UnumX (NBit), // nXX
 	DotX (NBit),
 	ChrX (NBit), // UTF-X
 	Ref (Box<VarKind>), // reference to a type
@@ -341,7 +367,7 @@ pub fn tokenize(lex: &mut Lexer<TokenKind>) -> EcoVec<Token> {
 				pos: { // line and column
 					let line = lex.extras.0 + 1;
 					let column = lex.span().start - lex.extras.1;
-					(line, column)
+					CodePos(line, column)
 				}
 			}
 		})
@@ -358,6 +384,7 @@ impl Expr {
 }
 
 #[macro_export]
+#[allow(unused)]
 macro_rules! get_t {
 	($from:expr) => {
 		EcoString::from(std::any::type_name_of_val($from))
@@ -374,7 +401,9 @@ macro_rules! get_t {
 	};
 }
 
-// dirty ass solution but imo easy to use, sorry for your eyes :P
+/// array holding all types of token that throw an error when a
+/// literal precedes them (e.g. 1 + 1 => "1" is the prefix of "+")
+/// (dirty ass solution but imo easy to use, sorry for your eyes :P)
 #[allow(unused)]
 const NO_VAL_PREFIX: [TokenKind; 9] = [
 	TokenKind::LParen,
