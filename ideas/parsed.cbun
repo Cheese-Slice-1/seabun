@@ -1,0 +1,5 @@
+let ten num = 10.
+let eleven = 11.
+mut a_number num.
+mut another_one num = 1.
+mut another_two = 2. ; badum tss!
