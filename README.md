@@ -4,7 +4,7 @@
 
 <sup><sub>(todo: logo image)</sub></sup>
 
-## introduction
+## INTRODUCTION
 
 seabun (lowercase everything!) is a somewhat silly programming language i made for fun :3
 
@@ -37,6 +37,8 @@ some of these "strange" design choices include:
 - using `{{ ..., ... }}` for defining tuples
 - giving default values to all primitive types (and therefore to all user-defined types)
 - not being able to define methods for types (like class methods in OOP or `impl` statements in rust")
+
+### EXAMPLES
 
 <sup><sub>(todo: examples (tho i should finish the compiler first lol))</sub></sup>
 
