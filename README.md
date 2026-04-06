@@ -1,4 +1,4 @@
-<sup><sub><sup><sub> note: everything is in lowercase or uppercase because of the vibes i want the language to have: unserious, informal and friendly. also i won't take responsibility for the disgust, anger, frustration, or anything else you may feel reading this text :Þ </sub></sup></sub></sup>
+<sup><sub><sup><sub> note: almost everything is exclussively in lowercase or uppercase because of the vibes i want the language to have: unserious, informal and friendly. also i won't take responsibility for the disgust, anger, frustration, or anything else you may feel reading this text :Þ </sub></sup></sub></sup>
 
 # seabun!
 
@@ -16,15 +16,36 @@ seabun aims to be _different_ (not better, not cool, just different), breaking s
 
 some of these "strange" design choices include:
 
+- having main be a keyword followed by a single expression (similar to a label)
+  - `main ...`
+  - `main { ... }`
 - using a period (.) instead of a semicolon (;)
 - making lambdas the default function type
-- using `: ... !` or `: ... ;` instead of `( ... )` when calling or defining functions
-  - `let name = fun: arg_name type, ...! body`
-  - `let name = fun type: arg type, ...! body`
-  - `name: param1, ...!.`
-- using a similar syntax to functions (`rec: ... !`) for defining records
+- using `: ...`, `: ... !` and `: ... ?` instead of `( ... )` when calling and defining functions
+  - `let f = fun: x T, ... do ...`
+  - `let f = fun: x T, ... { ... }`
+  - `let f = fun: x T, ... -> T do ...`
+  - `let f = fun: x T, ... -> T { ... }`
+  - `f: x, ... !`
+  - `f: x, ... ?`
+  - `f: x, ...`
+    - `!` and `?` can only be dropped when the call is by itself (not "nested"). that means `first: second!.` is the same as `first: second!!.`
+    - for function declarations, `!` and nothing is the same. `?` return an error.
+- using a similar syntax to functions for defining records (structs)
+  - `rec: ...`
+  - `rec: ... !`
 - using `{{ ..., ... }}` for defining tuples
 - giving default values to all primitive types (and therefore to all user-defined types)
-- not being able to define methods for types (like class methods in OOP or `impl` statement in rust")
+- not being able to define methods for types (like class methods in OOP or `impl` statements in rust")
 
-(todo: examples (tho i should finish the compiler first lol))
+<sup><sub>(todo: examples (tho i should finish the compiler first lol))</sub></sup>
+
+#### absolutely nothing!!!!
+```
+main.
+```
+
+#### hello world
+```
+main write "hello, world!".
+```
