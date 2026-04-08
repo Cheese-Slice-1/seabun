@@ -361,8 +361,8 @@ fn unbun_str<'a>(kind: TokenKind, string: &EcoString, pos: CodePos) -> EcoString
 /// what the something is is provided by the caller (e.g. "chr literal")
 #[allow(unused)]
 #[inline]
-fn malformed<'a>(exprkind: &str, pos: CodePos) -> ! {
-	println!("error: malformed {exprkind}: {}:{}", pos.0, pos.1);
+fn malformed(exprkind: &str, pos: CodePos) -> ! {
+	println!("error: malformed {exprkind}: {pos}");
 	exit(1)
 }
 
@@ -384,12 +384,12 @@ fn stop_here() -> ! {
 #[inline]
 fn dumbass_compiler(whatever: TokenKind, literal: &EcoString) -> ! {
 	println!("that is not a {whatever:?}, you mf dumbass compiler: {literal}");
-	exit(2)
+	exit(3)
 }
 
 /*
 fn unknown_tok(tok: EcoString, pos: CodePos) -> ! {
-	println!("error: unknown token \"{tok}\" at {}:{}", pos.0, pos.1);
+	println!("error: unknown token \"{tok}\" at {pos}");
 	exit(1)
 }
 */

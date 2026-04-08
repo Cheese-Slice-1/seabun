@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use ecow::{EcoString, EcoVec};
 
 extern crate logos;
-
 use logos::{Lexer, Logos, Skip};
 
 // use chumsky::prelude::*;
@@ -360,7 +359,7 @@ pub fn tokenize(lex: &mut Lexer<TokenKind>) -> EcoVec<Token> {
 			//println!("token:\n{}\n----------", lex.slice()); // visualize current slice
 
 			Token {
-				kind: el.0.unwrap_or_else(|_| TokenKind::Error), // if it can't be unwrapped it's an ERROR!!
+				kind: el.0.unwrap_or(TokenKind::Error), // if it can't be unwrapped it's an ERROR!!
 				
 				literal: lex.slice().trim().into(), // literal
 				
@@ -378,8 +377,20 @@ pub fn tokenize(lex: &mut Lexer<TokenKind>) -> EcoVec<Token> {
 impl Expr {
 	// TODO: implement AST v2 using this to check if an expr is Expr::Empty
 	#[inline]
-	fn check(expr: &Self) -> bool {
-		*expr == Expr::Empty
+	fn check(expr: &Self) -> Result<(), ()> {
+		if *expr == Self::Empty {
+			Err(())
+		} else {
+			Ok(())
+		}
+	}
+}
+
+use std::fmt;
+impl fmt::Display for CodePos {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "{}:{}", self.0, self.1)?;
+		Ok(())
 	}
 }
 
