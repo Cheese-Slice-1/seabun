@@ -3,6 +3,8 @@
 pkgs.mkShell {
   name = "seabun-dev";
   packages = with pkgs; [
+    micro # text editor, in case it's needed
+    
     libllvm # necessary for the llvm-sys crate
     lld # llvm linker
     #quickemu # for testing other architectures
