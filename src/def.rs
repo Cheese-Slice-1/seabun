@@ -292,16 +292,13 @@ pub enum Expr {
 /// these only contain essential info
 #[derive(Clone, Debug, PartialEq)]
 pub enum VarKind {
-    Num,         // = isize
-    Unum,        // = isize
-    Dot,         // like fsize
-    Str,         // = [u8]
-    Chr,         // = u8
-    Bln,         // just bool
-    NumX(NBit),  // nXX
-    UnumX(NBit), // nXX
-    DotX(NBit),
-    ChrX(NBit),               // UTF-X
+    Num(NBit),         // default = isize
+    Unum(NBit),        // default = isize
+    Dot(NBit),         // default = like fsize; T32 to T128
+    Str(NBit),         // default = like [u8]; up to T32
+    Chr(NBit),         // default = u8; up to T32
+    Bln(NBit),         // just bool
+    
     Ref(Box<VarKind>),        // reference to a type
     Arr(Box<VarKind>, usize), // the usize is the number of elements of the array
     Tup(EcoVec<VarKind>),
@@ -332,6 +329,7 @@ pub enum VarKind {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
 pub enum NBit {
     T8,
     T16,
@@ -429,3 +427,4 @@ const NO_VAL_PREFIX: [TokenKind; 9] = [
     TokenKind::Fun,
     TokenKind::Word,
 ];
+
