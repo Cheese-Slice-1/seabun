@@ -41,29 +41,39 @@ let zero = myfun!. ; compiler does `name (: (argument1, argument2, ...)) !/?`
 
 let is_ok = true.
 let not_ok = false.
-let result = fun show "hello".
-let alternative1 = fun show "hi".
-let alternative2 = fun show "howdy".
+let result = fun do show "hello".
+let alternative1 = fun do show "hi".
+let alternative2 = fun do show "howdy".
 
 ; if-else flow
-if is_ok result!.
-if not_ok result! else alternative1!.
-if not_ok result! else if not_ok alternative1! else alternative2!.
+if is_ok do result!.
+if not_ok do result! else alternative1!.
+if not_ok do result! else if not_ok do alternative1! else alternative2!.
 ; note that `else if` is not ONE condition, it's an else with a single-expression
 ; body containing an if expression.
 
 ; the same but with indent:
-if is_ok
+if is_ok do
 	result!. ; hello
 
-if not_ok
+if not_ok do
 	result!
 else
 	alternative1!. ; hi
 
-if not_ok
+if not_ok do
 	result!
-else if not_ok
+else if not_ok do
 	alternative1!
 else
 	alternative2!. ; howdy
+
+; what are enums are:
+	|...|T ;?????? -> |ok, err|       ; i like this syntax
+	<|...|>T ;???? -> <|ok, err|> and ; and this one too tbh
+		;maybe following this i can make raw strings be like <"...">?? that looks good... it'd also be consistent ig
+		;or maybe...
+		;<<...>>T = enum, `...` = raw str? ... yah no
+		;[|...|]T = enum? no
+		;I LIKE <|...|> WHAT DO I DOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO GHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+		;but i also like <<>> and <""> but it doesn't make sense to have both having similar syntax ;-;

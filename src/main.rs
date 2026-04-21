@@ -2,9 +2,10 @@ use ecow::{EcoString, EcoVec};
 use std::{env::args, fs::read_to_string};
 
 mod def;
-use def::{TokenKind, tokenize};
-
 mod aster;
+mod codegen;
+
+use def::{TokenKind, tokenize};
 use aster::build::primitive_ast;
 
 use logos::Logos;

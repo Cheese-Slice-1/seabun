@@ -1,4 +1,4 @@
-; goal 0: bindings
+; goal: bindings
 
 ;! docs of a very important immutable binding
 ;let a = 1. ; num by default
@@ -19,15 +19,18 @@
 ;def int num. ; type binding
 ;def cchar n8.
 
-;def num_array [10]num.
-;def num_tuple {{num, num}}.
-;def my_record rec: x dot, y dot.
+; goal: parse complex/composite types
+def num_array [10]num.
+def num_tuple {{num, num}}.
+def my_record rec: x dot, y dot.
+def my_normal_fun fun: num.
+def my_unique_fun fun -> num.
 def my_cool_fun fun: num -> num.
-;def result |ok, error|. ; an enum; defaults to unum representation
+def result enum: <|ok, error|>. ; an enum; defaults to unum representation
 
-; goal 1: simple compound expressions as a value
+; goal: simple compound expressions as a value
 ;let c = 1 + 2.
-;let d = 1 + 2 - 3. # = 0; seabun has a LtR approach with operations
+;let d = 1 + 2 - 3. ; = 0, seabun has a L->R approach with all operations
 
 ; goal: parse blocks
 ;{

@@ -5,14 +5,14 @@
 ;! this function does something
 let foo = fun: a num, b dot {
 	show "so...\n".
-	show "a is ", a as str, "\n".
-	showln: "b is ", b as str!. ; automatic new line; builtin *function*
+	show "a is ", a as str, "\n". ; "(num/unum value) as str" works like C's itoa
+	showln: "b is ", b as str!. ; automatic new line; builtin *function*!!
 }.
 
 let bar = fun: a num, b dot -> str {
 	if a > b {
 		give a as str. ; give = return
-	} elif b > a {
+	} else if b > a {
 		give b as str.
 	} else {
 		give (a as dot + b) as str.
@@ -20,14 +20,14 @@ let bar = fun: a num, b dot -> str {
 }.
 
 let fibb = fun: nth num -> num {
-	if n <= 1 { give clip: nth, 0!. }
+	if nth <= 1 do give clip: nth, 0!.
 	
-	give (fibb: n - 1! + fibb: nth - 2!).
+	give (fibb: nth - 1! + fibb: nth - 2!).
 }.
 
 ; function that takes a function and applies it twice
 let dotwice = fun: f fun: num!, x num {
-	f: x!.
+	f: x.
 	f: x!.
 }.
 
@@ -35,10 +35,10 @@ let dotwice = fun: f fun: num!, x num {
 ;! doc comment
 def person rec:
 	name str,
-	surnames []str,
+	surnames [2]str,
 	age num,
-	likes []str,
-	hates []str.
+	likes [10]str,
+	hates [10]str.
 
 ; named tuple called rgb
 def rgb {{num, num, num}}.
@@ -59,19 +59,19 @@ main {
 	let fibb5 = fibb: 5!.
 
 	; named parameters are optional, you can use positional
-	; ones instead
+	; ones if you want to
 	let johndoe person = rec:
 		name = "John",
 		surnames = ["Doe", "Smith"],
 		age = 20,
-		likes = ["icecream", "chocolate", "programming"],
-		hates = ["bugs", "brainrot", ""]!.
+		likes = ["icecream", "chocolate", "programming"], ; the rest of fields are empty strings
+		hates = ["bugs", "brainrot", ""]. ; same here
 
 	; instantiation of tuple types
 	let grassygreen rgb = {{197, 255, 0}}.
-	let puregreen rgb = {{0x00, 0xFF, 0x00}}.
+	let puregreen = rgb{{0x00, 0xFF, 0x00}}.
 
 	; a closure argument! here "!" is also the same as "!"
 	dotwice:
-		fun: a num! { sayln: a!. }!.
+		fun: a num! { showln: a!. }!.
 }.

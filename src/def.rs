@@ -110,7 +110,7 @@ pub enum TokenKind {
     AtSign, // like C "*T"; pointer type (@T) or "value at address" (bc it's read at lololol)
 
     #[regex("~", priority = 100)]
-    Tilde, // "address of"; a tilde because & is bitwise and
+    Tilde, // "address of"; a tilde because & is bitwise "and"
 
     #[regex("->", priority = 100)]
     Arrow, // will denote return type for funs and mabe smth more??
@@ -119,10 +119,17 @@ pub enum TokenKind {
     NotSign, // ¬a
 
     #[regex("&", priority = 100)]
-    Ampersand, // a & b
-
-    #[regex(r"\|", priority = 100)]
-    Pipe, // a | b
+    And, // a & b
+    
+    #[regex("&&", priority = 100)]
+    DblAnd, // a & b
+    
+    // support for ¦ and ¦¦ because i want :PPP
+    #[regex(r"\||¦", priority = 100)]
+    Pipe, // a | b, a ¦ b
+    
+    #[regex(r"\|\||¦¦", priority = 100)]
+    DblPipe, // a || b, a ¦¦ b
 
     #[regex(r"\\", priority = 100)]
     BackSlash, // a \ b
