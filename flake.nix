@@ -2,7 +2,7 @@
   description = "Seabun devshell";
   
   inputs = {
-  	nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-25.11";
+  	nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
   };
   
   outputs =
