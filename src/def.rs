@@ -423,7 +423,7 @@ macro_rules! get_t {
 /// literal precedes them (e.g. 1 + 1 => "1" is the prefix of "+")
 /// (dirty ass solution but imo easy to use, sorry for your eyes :P)
 #[allow(unused)]
-const NO_VAL_PREFIX: [TokenKind; 9] = [
+pub const NO_VAL_PREFIX: [TokenKind; 9] = [
     TokenKind::LParen,
     TokenKind::LBracket,
     TokenKind::LDblBrace,

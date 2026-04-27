@@ -3,7 +3,7 @@
 pkgs.mkShell {
   name = "seabun-dev";
   packages = with pkgs; [
-    micro # text editor, in case it's needed
+    micro # text editor; replace it with your preferred one
     
     libllvm # necessary for the llvm-sys crate
     lld # llvm linker
