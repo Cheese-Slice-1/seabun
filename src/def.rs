@@ -260,7 +260,7 @@ pub enum Expr {
     Arr(EcoVec<Expr>, VarKind), // varkind = first value's varkind
 
     /// record literal. e.g rec: x num!;
-    Rec(HashMap<EcoString, (Expr, VarKind)>), // TODO: rethink this type of expression asap
+    Rec(EcoVec<(EcoString, (Expr, VarKind))>), // TODO: rethink this type of expression asap
 
     /// function literal. e.g. fun: arg num {}; fun -> chr {}; fun: arg num -> chr {}
     Fun {

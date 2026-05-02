@@ -32,12 +32,15 @@ let my_sweet_function = fun -> [9]chr {
 let myfun fun -> num. ; generates default function "fun -> num give 0."
 let zero = myfun!. ; compiler does `name (: (argument1, argument2, ...)) !/?`
 ; myfun:!. is also valid, but way more verbose
+; myfun. is NOT valid; you either drop the colon or the bang, not both
 ; will there be an error type??? (for `?`-checks i mean)
 ; if not, what does `?` check for????? is it just for aesthetic purposes???
 ; would defining it be like a record? or a tuple? or an enum?
 ; maybe an error is a record, with a default `message str` field
 ; like:
 ;	def my_error err: message str
+; let's just do what the rusters do lul
+; like jus an <|ok, err|> enum
 
 let is_ok = true.
 let not_ok = false.
@@ -69,11 +72,4 @@ else
 	alternative2!. ; howdy
 
 ; what are enums are:
-	|...|T ;?????? -> |ok, err|       ; i like this syntax
-	<|...|>T ;???? -> <|ok, err|> and ; and this one too tbh
-		;maybe following this i can make raw strings be like <"...">?? that looks good... it'd also be consistent ig
-		;or maybe...
-		;<<...>>T = enum, `...` = raw str? ... yah no
-		;[|...|]T = enum? no
-		;I LIKE <|...|> WHAT DO I DOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO GHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-		;but i also like <<>> and <""> but it doesn't make sense to have both having similar syntax ;-;
+<|...|>T ; optional T, enums use u8 as default

@@ -1,3 +1,6 @@
+# ez pz method for the people who don't write the file
+# just run `nix develop` inside the "seabun" folder and ignore the horrors of tis file
+
 {
   description = "Seabun development shell -- everything included (+ fish + micro)";
   
@@ -9,23 +12,26 @@
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
       
-      # user-friendly shell; replace it with your preferred one
+      # user-friendly shell; replace it with your preferred one, maybe
       useShell = {
         pkg = pkgs.fish;
         cmd = "fish";
       };
       
-      # text editor; replace it with your preferred one
+      # text editor; replace it with your preferred one, maybe
       useEditor = pkgs.micro;
     in
     {
       devShells.${system}.default = pkgs.mkShell {
-        name = "seabun-dev";
+        name = "seabun-dev-flake";
         
         packages = with pkgs; [
-          libllvm # necessary for the llvm-sys crate
+          #qemu # for testing other architectures(?)
+          
           lld # llvm linker
-          #quickemu # for testing other architectures(?)
+          libllvm # necessary for the llvm-sys crate
+          # * i'll try to update the language when new versions drop;
+          # else i'll leave it at version 21.1 (if llvmPackages_21 drops)
           
           # rust components
           cargo
