@@ -66,6 +66,15 @@ main {
 #### "itoa!?!?"
 ```
 ; "as str" on numeric values ALWAYS acts as a conversion to an alphanumeric representation
-; to get a character from a code point do "as chr" or "as n8" (similar to a classic c's and c++'s char)
-main show 123 as str.
+; to get a character from a code point do "as chr" or "as n8" (like c's and c++'s chars)
+main show 123 as str. // -> "123"
+//main show 123. // -> "{"
 ```
+<sub>this would be implemented as:
+1. if it's a num/unum and is between -9 (for nums) and 9, add 48 to it's absolute and put the sign if needed
+2. if it's a chr, wrap it in an array (strs are basically arrays of chars)
+3. if it's a bln, write "true" or "false"
+4. for other types, either call (typename)_stringify, use the underlying type's method (aliases), or panic
+5. arrays and tuples just apply it to all "as str" to all elements
+
+but this is just a rough idea i guess</sub>
