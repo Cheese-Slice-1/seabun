@@ -10,7 +10,7 @@ seabun (lowercase everything) is a somewhat silly programming language i'm makin
 
 i'm designing it to be as low-level-but-also-readable as i can, and i'm planing to make it compile to c-compatible LLVM IR
 
-## design philosophy
+### design philosophy
 
 seabun aims to be _different_ (not better, not cool, just different), breaking some common practices for the sole purpose of diverging from "the norm" (and because i want to heheheh)
 
@@ -42,7 +42,9 @@ some of these "strange" design choices include:
 
 ... and many more that can be seen in `ideas/seabun.cbun` and `ideas/random_ideas.cbun`
 
-### EXAMPLES
+-----
+
+## examples
 
 <sup><sub>(todo: examples (tho i should finish the compiler first lol))</sub></sup>
 
