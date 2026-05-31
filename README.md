@@ -20,6 +20,7 @@ some of these "strange" design choices include:
   - `main ...`
   - `main { ... }`
 - using a period (.) instead of a semicolon (;)
+- using `¬` instead of `!` for "not"
 - making lambdas the default function type
 - using `: ...`, `: ... !` and `: ... ?` instead of `( ... )` when calling and defining functions
   - `let f = fun: x T, ... do ...`
@@ -30,11 +31,12 @@ some of these "strange" design choices include:
   - `f: x, ... ?`
   - `f: x, ...`
     - `!` can only be dropped when the call is by itself (not "nested"). that means `first: second!` is the same as `first: second!!`, as the `!` belongs to the inner call
-    - for function declarations, `!` and nothing is the same. `?` return an error<sup>(i'm still deciding which way to go with this)</sup>.
+    - for function declarations, `!` and nothing is the same. `?` tells the compiler a call may return an error<sup>(i'm still deciding which way to go with this)</sup>.
 - using a similar syntax to functions for defining records (structs)
   - `rec: ...`
   - `rec: ... !`
 - using `{{ ..., ... }}` for defining tuples
+- using `<| ... |>` for defining enums
 - giving default values to all primitive types (and therefore to all user-defined types)
 - not being able to define methods for types (like class methods in OOP or `impl` statements in rust")
 
@@ -49,32 +51,40 @@ some of these "strange" design choices include:
 main.
 ```
 
+#### still absolutely nothing!!1!1!
+```
+main {}
+```
+
 #### hello world
 ```
-main show "hello, world!\n".
+main show "hello, world.\n".
 ```
 
 #### hello world v2
 ```
 main {
     let hello = "hello, ".
-    let world = "world!\n".
+    let world = "world.\n".
     show hello, world.
-}.
+}
 ```
 
-#### "itoa!?!?"
+#### "`itoa`!?!?" yes, `itoa`
 ```
-; "as str" on numeric values ALWAYS acts as a conversion to an alphanumeric representation
-; to get a character from a code point do "as chr" or "as n8" (like c's and c++'s chars)
-main show 123 as str. // -> "123"
-//main show 123. // -> "{"
+; "as str" on numeric values ALWAYS acts as a conversion to an alphanumeric representation.
+; to get a character from a code point instead, use "as chr" or "as n8" (like c's and c++'s chars).
+main {
+    show 123 as str. ; -> "123"
+    show 123. ; -> "{"
+    ; -> 123{
+}
 ```
-<sub>this would be implemented as:
-1. if it's a num/unum and is between -9 (for nums) and 9, add 48 to it's absolute and put the sign if needed
-2. if it's a chr, wrap it in an array (strs are basically arrays of chars)
-3. if it's a bln, write "true" or "false"
-4. for other types, either call (typename)_stringify, use the underlying type's method (aliases), or panic
-5. arrays and tuples just apply it to all "as str" to all elements
-
-but this is just a rough idea i guess</sub>
+<sup><sub>this would be implemented as:</sub></sup>
+<sup><sub>1. if it's a num/unum and is between -9 (for nums) and 9, add 48 to it's absolute and put the sign if needed</sub></sup>
+<sup><sub>2. if it's a chr, wrap it in an array (strs are basically arrays of chars)</sub></sup>
+<sup><sub>3. if it's a bln, write "true" or "false"</sub></sup>
+<sup><sub>4. for other types, either call (typename)_stringify, use the underlying type's method (aliases), or panic</sub></sup>
+<sup><sub>5. arrays and tuples just apply it to all "as str" to all elements</sub></sup>
+<sup><sub>either that or just syntactic sugar for point 4 for all types</sub></sup>
+<sup><sub>... but this is just a rough idea i guess</sub></sup>
