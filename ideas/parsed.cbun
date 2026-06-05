@@ -5,6 +5,15 @@ let eleven = 11.
 mut a_number num = 0.
 mut another_one num = 1.
 mut another_two = 2. ; badum tss!
-let hello = "hello";
-mut world = <<world>>;
+mut a_float = 2d0.
+let am_i_cool = yes. ; bln
+mut seabun_is_great = true.
+let is_this_a_joke = no.
+mut water_is_bad = false.
+let initial = '\x73'. ; chr (usu. c8) by default
+;let hello = "hello\tescaped" ; should give error, as for now i have yet to implement it
+mut world = <<world \n\o\t \e\s\c\a\p\e\d>>.
+
+;def int num. ; type binding
+;def cchar n8.
 

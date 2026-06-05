@@ -71,5 +71,19 @@ else if not_ok do
 else
 	alternative2!. ; howdy
 
-; what are enums are:
+; how enums are:
 <|...|>T ; optional T, enums use u8 as default
+
+; i was thinking of maybe making "}" act an end of expression when the value is a block
+; so for example:
+let a = {
+	
+} ; no dot needed. possibly.
+; blocks must to be alone so the only possible way to have something after is
+; separating expressions with a comma
+
+; seabun treats everyhting as an expression so this:
+let x = 1.
+; is an expression evaluating to "empty"
+; maybe in a future variable definitions will evaluate to the value too?? idk
+
