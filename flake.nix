@@ -2,36 +2,30 @@
 # just run `nix develop` inside the "seabun" folder and ignore the horrors of tis file
 
 {
-  description = "Seabun development shell -- everything included (+ fish + micro)";
+  description = "Seabun development shell/environment; everything included ( + micro)";
   
-  inputs.nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+  inputs.nixpkgs = {
+    url = "https://github.com/NixOS/nixpkgs/archive/549bd84d6279f9852cae6225e372cc67fb91a4c1.tar.gz";
+    #sha256 = "sha256-hGdgeU2Nk87RAuZyYjyDjFL6LK7dAZN5RE9+hrDTkDU=";
+  };
   
   outputs =
-    { self, nixpkgs, ... }:
+    inputs@{ self, nixpkgs, ... }:
     let
-      system = "x86_64-linux";
-      pkgs = import nixpkgs { inherit system; };
-      
-      # user-friendly shell; replace it with your preferred one, maybe
-      useShell = {
-        pkg = pkgs.fish;
-        cmd = "fish";
-      };
+      system = "x86_64-linux"; # idk how to add more, if you're not on x86_64 use `nix-shell`
+      pkgs = import  nixpkgs { inherit system; };
       
       # text editor; replace it with your preferred one, maybe
       useEditor = pkgs.micro;
+      llvm21 = pkgs.llvmPackages_21;
     in
     {
       devShells.${system}.default = pkgs.mkShell {
         name = "seabun-dev-flake";
         
-        packages = with pkgs; [
-          #qemu # for testing other architectures(?)
-          
-          lld # llvm linker
-          libllvm # necessary for the llvm-sys crate
-          # * i'll try to update the language when new versions drop;
-          # else i'll leave it at version 21.1 (if llvmPackages_21 drops)
+        packages = (with pkgs; [
+          #qemu # for testing other architectures
+          libtinfo
           
           # rust components
           cargo
@@ -39,13 +33,16 @@
           rustfmt
           rust-analyzer
           clippy
-        ] ++ [
-          useShell.pkg
-          useEditor
-        ];
+        ])
+        ++ (with llvm21; [
+          lld # llvm linker
+          libllvm # necessary for the llvm-sys crate
+        ])
+        ++ [ useEditor ];
         
         shellHook = ''
-          exec ${useShell.cmd}
+          echo '* run "cargo clippy -- -A warnings" to see if there are any errors'
+          echo '* to get a full diagnostic, omit everything starting from the "--"'
         '';
       };
     };
