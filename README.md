@@ -4,6 +4,8 @@
 
 <sup><sub>(todo: logo image)</sub></sup>
 
+-----
+
 ## introduction
 
 seabun (lowercase everything) is a somewhat silly programming language i'm making for fun :3
@@ -90,3 +92,4 @@ main {
 <sup><sub>5. arrays and tuples just apply it to all "as str" to all elements</sub></sup>
 <sup><sub>either that or just syntactic sugar for point 4 for all types</sub></sup>
 <sup><sub>... but this is just a rough idea i guess</sub></sup>
+

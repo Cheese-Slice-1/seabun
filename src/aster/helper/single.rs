@@ -1,28 +1,32 @@
 use crate::aster::helper::errors::*;
-use crate::def::{Token, TokenKind, CodePos, Expr};
+use crate::def::{CodePos, Expr, NBit, Token, TokenKind, VarKind};
 
-use ecow::{EcoVec, EcoString};
+use ecow::{EcoString, EcoVec};
 use unescaper::unescape;
 
+// URGENT: migrate to non-recursive asap
 /// precedence-based non-composite expression parser
-pub fn parse_val(value: EcoVec<Token>, errpos: CodePos, isnested: bool) -> Expr {
+pub fn parse_val(value: EcoVec<Token>, errpos: CodePos) -> Box<Expr> {
     // expression to return
     let mut res = Expr::Empty;
 
     if value.is_empty() {
-        return res;
+        return Box::new(res);
     }
 
     // single token expression
+    // URGENT: remove in favor of purely loop-based parsing
     if value.len() == 1 {
         return match &value[0] {
             // kind (Expr) isn't Cow (clone-on-write)
+
             // a variable/type/etc. name
             Token {
                 kind: TokenKind::Word,
                 literal,
                 ..
             } => Expr::Name(literal.clone()),
+
             // a integer
             Token {
                 kind: TokenKind::Num,
@@ -66,7 +70,7 @@ pub fn parse_val(value: EcoVec<Token>, errpos: CodePos, isnested: bool) -> Expr 
                 let raw: char = unescape(literal.get(1..literal.len() - 1).unwrap_or(r"\u0000"))
                     .unwrap_or_else(|_| malformed("chr literal", *pos))
                     .chars()
-                    .nth(0)
+                    .next()
                     .unwrap_or('\x00');
 
                 Expr::Chr(raw)
@@ -79,10 +83,11 @@ pub fn parse_val(value: EcoVec<Token>, errpos: CodePos, isnested: bool) -> Expr 
                 literal,
                 pos,
             } => {
-                let unescaped = unescape(&unbun_str(TokenKind::Str, literal, *pos)[..]) // dumbass everything
-					.unwrap_or_else(|_| {
-						dumbass_compiler(TokenKind::Str, literal)
-					}
+                let unescaped = unescape(
+                    &unbun_str(TokenKind::Str, literal, *pos)[..]) // dumbass everything
+                        .unwrap_or_else(|_| {
+                            dumbass_compiler(TokenKind::Str, literal)
+                        }
 				);
 
                 println!("{unescaped}");
@@ -109,53 +114,58 @@ pub fn parse_val(value: EcoVec<Token>, errpos: CodePos, isnested: bool) -> Expr 
             Token {
                 kind: TokenKind::RParen,
                 ..
-            } => {
-                if isnested {
-                    res
-                } else {
-                    malformed("expression", errpos)
-                }
-            }
+            } => malformed("expression (no opening parentheses)", errpos),
 
             _ => malformed("or unimplemented expression", errpos), // TODO: parse other single-token expressions
         };
     }
 
     let mut i: usize = 0;
+    let mut expr_depth: usize = 0;
+    let mut expr_stack = EcoVec::<Expr>::new();
 
+    // NOTE: the idea is to make "res" recover with merges (like, an operation + value = operation with one operand)
+    // instead of the previous recursive calls. that way it also makes it easier to parse sub-values withput worrying
+    // about matching closing delimiters :3 (i think??)
     while i < value.len() {
-        match value[i] {
+        match &value[i] {
             // a parenthesized expression
             Token {
                 kind: TokenKind::LParen,
                 pos,
                 ..
             } => {
-                let parenspan = value[i..] // sub tokens to parse
-                    .iter()
-                    .take_while(|tok| tok.kind != TokenKind::ExprEnd)
-                    .cloned()
-                    .collect::<EcoVec<Token>>();
+                //let parenspan = value[i..] // sub tokens to parse
+                //    .iter()
+                //    .take_while(|tok| tok.kind != TokenKind::ExprEnd)
+                //    .cloned()
+                //    .collect::<EcoVec<Token>>();
 
-                i += parenspan.len();
+                //i += parenspan.len();
 
-                let parenval = parse_val(parenspan, pos, true);
-
-                res = parenval;
+                expr_stack.push(res);
+                expr_depth += 1;
+                res = Expr::Empty;
                 // parse_val on everything until a ")"
-            }
+            },
 
             Token {
                 kind: TokenKind::RParen,
                 pos,
                 ..
             } => {
-                if isnested {
-                    return res;
-                } else {
-                    malformed("parenthesized expression", pos);
+                if expr_depth < 1 {
+                    malformed("parenthesized expression", *pos);
                 }
-            }
+
+                let previous = expr_stack.pop()
+                    .unwrap_or_else(|| {
+                        eprintln!("None on expr_stack after checking, wtf?");
+                        std::process::exit(3)
+                    });
+
+
+            },
 
             Token {
                 kind: TokenKind::Word,
@@ -163,7 +173,36 @@ pub fn parse_val(value: EcoVec<Token>, errpos: CodePos, isnested: bool) -> Expr 
                 ..
             } => res = Expr::Name(literal.clone()),
 
-            _ => unknown(&value[i].literal, value[i].pos),
+            Token {
+                kind: TokenKind::Num,
+                literal,
+                pos,
+            } => {
+                expr_stack.push(Expr::Num(
+                    literal
+                        .parse::<i128>()
+                        .unwrap_or_else(|_| malformed("num literal", *pos)),
+                ));
+            },
+
+            Token {
+                kind: TokenKind::Error,
+                literal,
+                pos,
+            } => unknown(&value[i].literal, value[i].pos),
+
+            Token {
+                kind: TokenKind::ExprEnd,
+                ..
+            } => {
+                if expr_depth < 1 {
+                    return res;
+                } else {
+                    unimp(errpos);
+                }
+            },
+
+            _ => malformed("expression (if malformed, probably missing a delimeter)", value[0].pos),
         }
 
         i += 1;
@@ -179,10 +218,63 @@ pub fn parse_val(value: EcoVec<Token>, errpos: CodePos, isnested: bool) -> Expr 
 
     //unimplemented!();
 
-    res
+    Box::new({
+        if res.check() {
+            return res;
+        }else {
+            return expr_stack
+                .pop()
+                .unwrap_or_else(|| stop_here("idk what's happening but the parser is doing Things TM"));
+        }
+    })
 }
 
-pub fn unbun_str<'a>(kind: TokenKind, string: &EcoString, pos: CodePos) -> EcoString {
+pub fn to_varkind(toks: EcoVec<Token>, errpos: CodePos) -> VarKind {
+    // predefined literals
+    if toks.len() < 2 {
+        let Some(tok) = toks.first() else {
+            return VarKind::Unknown;
+        };
+
+        return match &tok.literal[..] {
+            "num" => VarKind::Num(NBit::TSize),
+            "dot" => VarKind::Dot(NBit::TSize),
+            "chr" => VarKind::Chr(NBit::T8),
+            "str" => VarKind::Str(NBit::T8),
+            "bln" => VarKind::Bln(NBit::T8),
+            _ => VarKind::Unknown, // non-primitive (custom/alias)
+        };
+    }
+
+    // TODO: implement complex types like funs, recs, arrays, etc.
+    // very important so remember eh?
+
+    let mut ret = VarKind::Unknown;
+
+    for (i, tok) in toks.iter().enumerate() {
+        println!("{i}) {tok:#?}");
+
+        match tok {
+            Token {
+                kind: TokenKind::LBracket,
+                pos,
+                ..
+            } => unimp(*pos),
+
+            Token {
+                kind: TokenKind::RBracket,
+                pos,
+                ..
+            } => unimp(*pos),
+
+            _ => unimp(errpos),
+        }
+    }
+
+    unimp(pos)
+}
+
+pub fn unbun_str(kind: TokenKind, string: &EcoString, pos: CodePos) -> EcoString {
     match kind {
         TokenKind::Str => {
             let end = string.len() - 1;
@@ -201,3 +293,4 @@ pub fn unbun_str<'a>(kind: TokenKind, string: &EcoString, pos: CodePos) -> EcoSt
         _ => dumbass_compiler(kind, string),
     }
 }
+

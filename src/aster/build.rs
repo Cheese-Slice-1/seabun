@@ -4,16 +4,20 @@
 //use std::collections::HashMap;
 use ecow::{EcoString, EcoVec /*, eco_vec*/};
 
-use crate::aster::helper::errors::*;
+use crate::aster::helper::{
+    binds::{parse_bind, parse_rebind},
+    errors::*,
+    single::to_varkind,
+};
 use crate::def::*;
 
 // TODO: defined ids; move it to where it belongs!!
 //static mut BINDINGS: EcoVec<(String, Expr)> = eco_vec![];
 
 /// creates a very primitive ast
-pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
+pub fn make_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
     let mut i: usize = 0; // boring index
-    let mut res: EcoVec<Expr> = EcoVec::new(); // the resulting AST (nodes)
+    let mut res = EcoVec::<Expr>::new(); // the resulting AST (nodes)ss
 
     while i < tokens.len() {
         match &tokens[i] {
@@ -33,14 +37,13 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
                 literal,
                 ..
             } => {
-                let bind: EcoVec<Token> = tokens[i..] // let-related chunk
-                    .iter()
-                    .take_while(|tok| tok.kind != TokenKind::ExprEnd)
-                    .cloned()
-                    .collect::<EcoVec<Token>>();
-                i += bind.len() - 1;
+                let bind: EcoVec<Token> = tokens[i..].into(); // let-related chunk
+                    //.iter()
+                    //.take_while(|tok| tok.kind != TokenKind::ExprEnd)
+                    //.cloned()
+                    //.collect::<EcoVec<Token>>();
 
-                let bind_params = match &literal[..] {
+                let bind_kind = match &literal[..] {
                     // NOTE: don't use kind. do not. please.
                     "mut" => BindKind::MutValue, // mutable
                     "let" => BindKind::Value,    // mutablen't (badum tsss)
@@ -48,15 +51,22 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
                     _ => panic!("this shouldn't happen!! wtf!!!!"),
                 };
 
-                res.push(parse_bind(
+                let (length, r#final) = parse_bind(
                     bind, // tokens that conform th declaration
                     // always Let or Mut. nothing else should be possible
                     // if there's something else blame it on me or the lexer
                     // cuz lil bro shouldn't be doing that...
-                    bind_params,
-                ));
+                    bind_kind,
+                );
+                i += length;
+                
+                println!("{:#?}", r#final);
+                
+                stop_here("fixing the implementation of the aster module");
+                
+                res.push(r#final);
             }
-
+            
             Token {
                 kind: TokenKind::Word,
                 literal,
@@ -71,7 +81,7 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 
                 res.push(parse_rebind(rebind));
             }
-
+            
             /* ERROR */
             Token {
                 kind: TokenKind::Error,
@@ -79,13 +89,13 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
                 pos,
                 ..
             } => unknown(literal, *pos),
-
+            
             /* NOTHING */
             _ => {}
         }
-
+        
         //println!("{:#?}\n", res.last());
-
+        
         i += 1;
     }
 
@@ -93,47 +103,10 @@ pub fn primitive_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 }
 
 /*
-pub fn advanced_ast(_ast: EcoVec<Expr>) -> EcoVec<Expr> {
+pub fn generate_ast(_ast: EcoVec<Expr>) -> EcoVec<Expr> {
     unimplemented!(); // TODO: clean up AST and resolve datatypes, expressions, etc. here
 }
 */
-
-// AST-RELATED FUNCTIONS
-
-/* UTILS */
-
-pub fn to_varkind(toks: EcoVec<Token>, pos: CodePos) -> VarKind {
-    // predefined literals
-    if toks.len() < 2 {
-        let Some(tok) = toks.get(0) else {
-            return VarKind::Unknown;
-        };
-        
-        return match &tok.literal[..] {
-            "num" => VarKind::Num(NBit::T32),
-            "dot" => VarKind::Dot(NBit::T32),
-            "chr" => VarKind::Chr(NBit::T8),
-            "str" => VarKind::Str(NBit::T8),
-            "bln" => VarKind::Bln(NBit::T8),
-            _ => VarKind::Unknown, // non-primitive (like custom types, tuples, arrays and records)
-        };
-    }
-
-    // TODO: implement complex types like funs, recs, arrays, etc.
-    // very important so remember eh?
-
-    let mut ret = VarKind::Unknown;
-
-    for (i, tok) in toks.iter().enumerate() {
-        println!("{i}) {tok:#?}");
-        
-        match tok {
-            _ => unimp()
-        }
-    }
-
-    unimp()
-}
 
 /*
     implementation should turn (simplified):
@@ -169,4 +142,3 @@ pub fn to_varkind(toks: EcoVec<Token>, pos: CodePos) -> VarKind {
         },
     ]
 */
-
