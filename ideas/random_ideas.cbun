@@ -77,13 +77,33 @@ else
 ; i was thinking of maybe making "}" act an end of expression when the value is a block
 ; so for example:
 let a = {
-	
+	let a_1 = 'h'.
+	let a_2 = 'i'.
+	give [a_1, a_2].
 } ; no dot needed. possibly.
 ; blocks must to be alone so the only possible way to have something after is
 ; separating expressions with a comma
 
-; seabun treats everyhting as an expression so this:
+; note that do blocks need parentheses to differentiate them from the next expression
+; if they're between expressions or parts of an expression. they were designed as a
+; single-block expression shorthand, so even though you can use them this way,
+; i recommend you use a brackets block for non-final blocks, they're celaner.
+; extra points if you mainntain the style.
+if a == "hi" (do show "hi\n") else (do show "goodbye\n"). ; ew
+if a == "hi" (do show "hi\n") else do show "goodbye\n". ; ugly
+if a == "hi" {show "hi\n".} else do show "goodbye\n". ; fine?
+if a == "hi" {show "hi\n".} else {show "goodbye\n"} ; heaven
+
+; seabun treats everyhting as an expression so this as a whole:
 let x = 1.
-; is an expression evaluating to "empty"
-; maybe in a future variable definitions will evaluate to the value too?? idk
+; is an expression evaluating to an empty expression.
+; maybe in a future variable definitions and declarations will evaluate to the value too?? idk
+
+; to access a record's fields you use the hash symbol
+let patricia rec: name str, age unum = rec: "patricia", 24.
+show patricia#name, '\n'.
+show patricia#age as str, '\n'.
+
+; switch expressions are called "when". they can be in one line.
+when patricia#age < 30 -> (show "patricia's under 30\n"), 
 

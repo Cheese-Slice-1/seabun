@@ -1,8 +1,8 @@
-<sup><sub><sup><sub> note: almost everything is exclussively in lowercase or uppercase because of the vibes i want the language to have: unserious, informal and friendly. also i won't take responsibility for the disgust, anger, frustration, or anything else you may feel reading this text :Þ </sub></sup></sub></sup>
+###### note: almost everything is exclussively in lowercase or uppercase because of the vibes i want the language to have: unserious, informal and friendly. also i won't take responsibility for the disgust, anger, frustration, or anything else you may feel reading this text :Þ
 
 # seabun!
 
-<sup><sub>(todo: logo image)</sub></sup>
+###### (todo: logo image)
 
 -----
 
@@ -48,7 +48,7 @@ some of these "strange" design choices include:
 
 ## examples
 
-<sup><sub>(todo: examples (tho i should finish the compiler first lol))</sub></sup>
+###### (todo: examples (tho i should finish the compiler first lol))
 
 #### absolutely nothing!!!!
 ```
@@ -74,7 +74,7 @@ main {
 }
 ```
 
-#### "`itoa`!?!?" yes, `itoa`
+#### "`itoa`!?!?" yes, `itoa`!!
 ```
 ; "as str" on numeric values ALWAYS acts as a conversion to an alphanumeric representation.
 ; to get a character from a code point instead, use "as chr" or "as n8" (like c's and c++'s chars).
@@ -84,12 +84,12 @@ main {
     ; -> 123{
 }
 ```
-<sup><sub>this would be implemented as:</sub></sup>
-<sup><sub>1. if it's a num/unum and is between -9 (for nums) and 9, add 48 to it's absolute and put the sign if needed</sub></sup>
-<sup><sub>2. if it's a chr, wrap it in an array (strs are basically arrays of chars)</sub></sup>
-<sup><sub>3. if it's a bln, write "true" or "false"</sub></sup>
-<sup><sub>4. for other types, either call (typename)_stringify, use the underlying type's method (aliases), or panic</sub></sup>
-<sup><sub>5. arrays and tuples just apply it to all "as str" to all elements</sub></sup>
-<sup><sub>either that or just syntactic sugar for point 4 for all types</sub></sup>
-<sup><sub>... but this is just a rough idea i guess</sub></sup>
+###### this _would_ be implemented as calling <type>_stringify functions:
+###### 1. if it's a num/unum and is between -9 (for nums) and 9, add 48 to it's absolute and put the sign if needed
+###### 2. if it's a chr, wrap it in an array (str's underlying type is []chr)
+###### 3. if it's a bln, write "true" or "false"
+###### for other types, either call <type>_stringify (should be in scope), use the underlying type's method (aliases), or panic
+###### arrays and tuples just apply it to all "as str" to all elements with their corresponding structure (e.g. {{1,2}} => "{{1, 2}}")
+###### in the end, unused standard stringify functions don't get included in the executable file
+###### ... but this is just a rough idea i guess
 
