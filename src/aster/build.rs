@@ -53,7 +53,7 @@ pub fn make_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
 
                 let (length, r#final) = parse_bind(
                     bind, // tokens that conform th declaration
-                    // always Let or Mut. nothing else should be possible
+                    // always Value, MutValue or Define. nothing else should be possible
                     // if there's something else blame it on me or the lexer
                     // cuz lil bro shouldn't be doing that...
                     bind_kind,
@@ -71,7 +71,7 @@ pub fn make_ast(tokens: EcoVec<Token>) -> EcoVec<Expr> {
                 kind: TokenKind::Word,
                 literal,
                 ..
-            } if tokens[i + 1].kind == TokenKind::EqSign => {
+            } if tokens[i + 1].kind == TokenKind::Equal => {
                 let rebind: EcoVec<Token> = tokens[i..]
                     .iter()
                     .take_while(|tok| tok.kind != TokenKind::ExprEnd)
@@ -113,7 +113,7 @@ pub fn generate_ast(_ast: EcoVec<Expr>) -> EcoVec<Expr> {
     [
         Token {kind: TokenKind::Let, ..},
         Token {kind: TokenKind::Name, literal: "x".into(), ..},
-        Token {kind: TokenKind::EqSign, ..}
+        Token {kind: TokenKind::Equal, ..}
         Token {kind: TokenKind::Num, literal: "5".into(), ..},
         Token {kind: TokenKind::Plus, ..}
         Token {kind: TokenKind::Num, literal: "5".into(), ..},
@@ -142,3 +142,4 @@ pub fn generate_ast(_ast: EcoVec<Expr>) -> EcoVec<Expr> {
         },
     ]
 */
+

@@ -1,7 +1,7 @@
 use ecow::{EcoString, EcoVec};
 use std::collections::HashMap;
 
-extern crate logos;
+//extern crate logos;
 use logos::{Lexer, Logos, Skip};
 
 // use chumsky::prelude::*;
@@ -56,7 +56,7 @@ pub enum TokenKind {
     Comma, // separates expressions
     
     #[regex("=", priority = 100)]
-    EqSign, // usu. used for assigning bindings
+    Equal, // usu. used for assigning bindings
     
     #[regex(":", priority = 100)]
     Colon, // separates name from parameter/argument list
@@ -124,18 +124,21 @@ pub enum TokenKind {
     #[regex("&", priority = 100)]
     And, // a & b
     
-    #[regex("&&", priority = 100)]
-    DblAnd, // a & b
+    #[regex("~&", priority = 100)]
+    BitAnd, // a ~& b
     
     // support for ¦ and ¦¦ because i want :PPP
     #[regex(r"\||¦", priority = 100)]
-    Pipe, // a | b, a ¦ b
+    Or, // a | b, a ¦ b
     
-    #[regex(r"\|\||¦¦", priority = 100)]
-    DblPipe, // a || b, a ¦¦ b
+    #[regex(r"~\||~¦", priority = 100)]
+    BitOr, // a ~| b, a ~¦ b
     
     #[regex(r"\\", priority = 100)]
-    BackSlash, // a \ b
+    Xor, // a \ b
+
+    #[regex(r"~\\", priority = 100)]
+    BitXor, // a \ b
     
     /* KEYWORS-BASED TOKENS */
     #[regex("show", priority = 60)]
@@ -285,16 +288,22 @@ pub enum Expr {
     },
     
     /// arithmetic operation
-    MathOp {
+    NumOp {
         // x+y, x-y, x*y, x/y, x^x, x%x
         left: Box<Expr>,
         right: Box<Expr>,
         op: char,
     },
+
+    /// boolean ooperatiob
+    BlnOp {
+        // x&y, x|y, x\y, ¬x
+    },
     
     /// bitwise operations
     BitOp {
-        // x~&y, x~|y
+        // x~&y, x~|y, x~\y, ~¬x
+        // the char is the second one, so '&' for "~&", '|' for "~|", etc.
         left: Box<Expr>,
         right: Box<Expr>,
         op: char,
@@ -318,11 +327,13 @@ pub enum Expr {
     },
 }
 
+/*
 #[derive(Clone, Debug, PartialEq)]
 #[repr(u8)]
 pub enum OpKind {
     
 }
+*/
 
 /// every possible variable kind in Seabun;
 /// these enum fields only contain essential type info
@@ -422,18 +433,14 @@ pub fn tokenize(lex: &mut Lexer<TokenKind>) -> EcoVec<Token> {
         .collect()
 }
 
-/*
-    impl Expr {
+
+impl Expr {
     // TODO: implement AST v2 using this to check if an expr is Expr::Empty
     #[inline]
-    fn check(expr: &Self) -> Result<(), ()> {
-        match *expr {
-            Self::Empty => Err(()),
-            _ => Ok(()),
-        }
+    pub fn check(&self) -> bool {
+        *self == Self::Empty
     }
 }
-*/
 
 impl std::fmt::Display for CodePos {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

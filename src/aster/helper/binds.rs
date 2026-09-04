@@ -19,7 +19,7 @@ pub fn parse_bind(tokens: EcoVec<Token>, bind_kind: BindKind) -> (usize, Expr) {
     let parts = tokens
         .get(1..tokens.len())
         .unwrap_or_else(|| malformed("declaration", errpos))
-        .splitn(2, |tok| tok.kind == TokenKind::EqSign)
+        .splitn(2, |tok| tok.kind == TokenKind::Equal)
         .collect::<EcoVec<_>>();
 
 
@@ -63,7 +63,7 @@ pub fn parse_bind(tokens: EcoVec<Token>, bind_kind: BindKind) -> (usize, Expr) {
     //println!("{:?}\n{:?}\n{:#?}\n", &name, &kind, &value);
 
     let value = match bind_kind {
-        BindKind::Define => (Box::new(Expr::Empty), 0),
+        BindKind::Define => Box::new(Expr::Empty),
         _ => Box::new(parse_val(
             (*value.unwrap_or_else(|| malformed("declaration", errpos))).into(), // sorry for the nesting ;^;
             errpos,
@@ -76,8 +76,7 @@ pub fn parse_bind(tokens: EcoVec<Token>, bind_kind: BindKind) -> (usize, Expr) {
             id: name.unwrap().literal.clone(),
             kind: (bind_kind, holds),
             val: value,
-            },
-        }
+        },
     )
 }
 

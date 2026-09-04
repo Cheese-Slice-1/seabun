@@ -6,12 +6,12 @@ use unescaper::unescape;
 
 // URGENT: migrate to non-recursive asap
 /// precedence-based non-composite expression parser
-pub fn parse_val(value: EcoVec<Token>, errpos: CodePos) -> Box<Expr> {
+pub fn parse_val(value: EcoVec<Token>, errpos: CodePos) -> Expr {
     // expression to return
     let mut res = Expr::Empty;
 
     if value.is_empty() {
-        return Box::new(res);
+        return res;
     }
 
     // single token expression
@@ -34,7 +34,7 @@ pub fn parse_val(value: EcoVec<Token>, errpos: CodePos) -> Box<Expr> {
                 pos,
             } => Expr::Num(
                 literal
-                    .parse::<isize>()
+                    .parse::<i128>()
                     .unwrap_or_else(|_| malformed("num literal", *pos)),
             ),
 
@@ -73,7 +73,7 @@ pub fn parse_val(value: EcoVec<Token>, errpos: CodePos) -> Box<Expr> {
                     .next()
                     .unwrap_or('\x00');
 
-                Expr::Chr(raw)
+                Expr::Chr(raw as u32)
             }
 
             // do NOT try collapse them into one
@@ -211,22 +211,20 @@ pub fn parse_val(value: EcoVec<Token>, errpos: CodePos) -> Box<Expr> {
     /*
         ideas:
             - parse tokens as if they were characters
-            - no operator precedence; pure LtR with precedence for parentheses
-            - LParen => recursive parse_val
-            - RParen => forcibly return from parse_val
+            - no operator precedence; pure LtR with precedence for parenthesized expressions
+            - LParen => increase expr_depth
+            - RParen => decrease expr_depth. return when 0, error if less
     */
-
+    
     //unimplemented!();
-
-    Box::new({
-        if res.check() {
-            return res;
-        }else {
-            return expr_stack
-                .pop()
-                .unwrap_or_else(|| stop_here("idk what's happening but the parser is doing Things TM"));
-        }
-    })
+    
+    if res.check() {
+        return res;
+    } else {
+        return expr_stack
+            .pop()
+            .unwrap_or_else(|| stop_here("idk what's happening but the parser is doing Things TM"));
+    }
 }
 
 pub fn to_varkind(toks: EcoVec<Token>, errpos: CodePos) -> VarKind {
@@ -251,27 +249,28 @@ pub fn to_varkind(toks: EcoVec<Token>, errpos: CodePos) -> VarKind {
 
     let mut ret = VarKind::Unknown;
 
+    // FIXME: "make it loop goddamnit!! you dumb slice of cheese!!!" - you, probably
     for (i, tok) in toks.iter().enumerate() {
         println!("{i}) {tok:#?}");
-
+        
         match tok {
             Token {
                 kind: TokenKind::LBracket,
                 pos,
                 ..
             } => unimp(*pos),
-
+            
             Token {
                 kind: TokenKind::RBracket,
                 pos,
                 ..
             } => unimp(*pos),
-
+            
             _ => unimp(errpos),
         }
     }
 
-    unimp(pos)
+    unimp(errpos)
 }
 
 pub fn unbun_str(kind: TokenKind, string: &EcoString, pos: CodePos) -> EcoString {
