@@ -13,7 +13,7 @@
     inputs@{ self, nixpkgs, ... }:
     let
       system = "x86_64-linux"; # idk how to add more, if you're not on x86_64 use `nix-shell`
-      pkgs = import  nixpkgs { inherit system; };
+      pkgs = import nixpkgs { inherit system; };
       
       # text editor; replace it with your preferred one, maybe
       useEditor = pkgs.micro;
@@ -47,3 +47,4 @@
       };
     };
 }
+
