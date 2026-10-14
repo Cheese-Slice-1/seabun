@@ -95,7 +95,7 @@ pub enum TokenKind {
     Minus,
     
     #[regex("[*]", priority = 100)]
-    Star, // multiplication
+    Star, // multiplication (x*y)
     
     #[regex("/", priority = 100)]
     Slash, // division (x/y)
@@ -104,13 +104,13 @@ pub enum TokenKind {
     Caret, // power (x^y)
     
     #[regex("%", priority = 100)]
-    Percent, // modulo (x%y)
+    Percent, // remainder, aka C's modulo (x%y)
     
     #[regex("#", priority = 100)]
     Hash, // type-casts like "as"
     
     #[regex("@", priority = 100)]
-    AtSign, // like C "*T"; pointer type (@T) or "value at address" (bc it's read at lololol)
+    AtSign, // like C "*T"; pointer type (@T) or "value at address" (bc it's read "at" lololol)
     
     #[regex("~", priority = 100)]
     Tilde, // "address of"; a tilde because & is bitwise "and"
@@ -127,7 +127,7 @@ pub enum TokenKind {
     #[regex("~&", priority = 100)]
     BitAnd, // a ~& b
     
-    // support for ¦ and ¦¦ because i want :PPP
+    // support for ¦ and ~¦ because i want :PPP
     #[regex(r"\||¦", priority = 100)]
     Or, // a | b, a ¦ b
     
@@ -138,7 +138,7 @@ pub enum TokenKind {
     Xor, // a \ b
 
     #[regex(r"~\\", priority = 100)]
-    BitXor, // a \ b
+    BitXor, // a ~\ b
     
     /* KEYWORS-BASED TOKENS */
     #[regex("show", priority = 60)]
