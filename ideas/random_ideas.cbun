@@ -1,32 +1,34 @@
-let a1 []num. ; array? or slice? prob slice
-let b1 [10]num. ; array 100%
+let a1 []num. ; slice
+let b1 [10]num. ; array
 let c1 @num. ; (*) pointer to num
 mut a2 []num. ; mutable slice, essentially a vector
 mut b2 [10]num. ; mutable array
 mut c2 @num. ; mutable pointer to num
-let s1 str. ; slice of chars (string)
+let s1 str. ; slice of chrs (string)
 mut s2 [30]chr. ; array of 30 chrs (string)
 let s3 @chr. ; (*) c style string
+
+; (*) imo pointers have no use as uninitialized immutable variables, but eh. do what you wanna do, idfc :P
 
 ; exact type sizes: 0, 8, 16, 32, 64, 128, size
 ; prefixes:
 ; - n: num
 ; - u: unum
-; - d: dot (max 64)
-; - c: chr (max c32 (aka utf-32), min 8)
+; - d: dot (max d64)
+; - c: chr (max c32 (for utf-32), min c8 (for utf-8))
 ; - s: str (s__ is like []c__, same rules)
 
 def my_data rec: title str, content str.
 
 let data1 my_data.
 let data2 []my_data. ; slice of struct
-let data3 @my_data. ; (*) pointer to struct
-
-; (*) imo pointers have no use as uninitialized immutable variables, but eh. do what you wanna do, idfc :P
+let data3 @my_data. ; pointer to struct
 
 let my_cute_function = fun -> str give "i'm cute". ; when only one expression??
 let my_sweet_function = fun -> [9]chr {
-	let result [9]chr = "i'm sweet".
+	let result = "i'm sweet" as [9]chr. ; string literals are slices (bc str-s are slices)
+	; slice as array -> array with slice[0] to array length and extra filler if necessary
+	; ~[1,2,3] as [5]num = [1, 2, 3, 0, 0]
 	give result.
 }.
 let myfun fun -> num. ; generates default function "fun -> num give 0."
@@ -100,10 +102,26 @@ let x = 1.
 ; maybe in a future variable definitions and declarations will evaluate to the value too?? idk
 
 ; to access a record's fields you use the hash symbol
-let patricia rec: name str, age unum = rec: "patricia", 24.
-show patricia#name, '\n'.
-show patricia#age as str, '\n'.
+let patricia rec: name str, age unum = rec: name = "patricia", age = 24.
+show [patricia#name, '\n'].
+show [patricia#age as str, '\n'].
+
+; rec field access gets top priority.
+; 
+; imagine `patricia # pet # name` in pseudocode:
+; 0. "patricia # pet # name" -> [Id(patricia), Hash, Id(pet), Hash, Id(name)]
+; 1. wow an identifier. before anything, are we accessing its fields? *YES* -> GET(patricia, pet)
+; 2. wow a rec field. before anything, are we accessing its fields? *YES* -> GET(GET(patricia, pet), name)
+; 3. wow a rec field. before anything, are we accessing its fields? *NO* -> fin
 
 ; switch expressions are called "when". they can be in one line.
-when patricia#age < 30 -> (show "patricia's under 30\n"), 
+when patricia#age < 30 -> (show "patricia's under 30\n")
+
+; OK HEAR ME OUT. NO "DO" BLOCKS.
+if patricia#age < 30 show "hi\". ; if EXPR EXPR.
+
+if 30 > patricia#age show "hi\" else show "goodbye". ; if EXPR EXPR else EXPR.
+
+let guests = [""]
+if patricia#name in guests show "welcome\n". ; if EXPR in EXPR EXPR.
 

@@ -32,22 +32,22 @@ pub struct CodePos(pub usize, pub usize);
 #[derive(Logos, Clone, Debug, PartialEq, Eq)]
 #[logos(extras=(usize, usize))]
 #[logos(skip (r#"\s+?"#, |l| {
-	for c in l.slice().chars() {
-		if c == '\n' {
-			l.extras.0 += 1;
-			l.extras.1 = l.span().end;
-		}
-	}
-	Skip
+    for c in l.slice().chars() {
+        if c == '\n' {
+            l.extras.0 += 1;
+            l.extras.1 = l.span().end;
+        }
+    }
+    Skip
 }))]
 #[repr(u8)]
 pub enum TokenKind {
     /* SYMBOL-BASED TOKENS */
     #[regex(r";[^\x00-\x1F]*", priority = 110)]
-    Comment, // #a line comment
+    Comment, // ; a line comment
     
     #[regex(r";[*][^\x00-\x1F]+?", priority = 120)]
-    Doc,
+    Doc, // ;? doc comment
     
     #[regex("[.]", priority = 100)]
     ExprEnd, // end of an expression
@@ -169,10 +169,10 @@ pub enum TokenKind {
     Rec, // record literal; rec: field type, ...!
     
     #[regex("if", priority = 60)]
-    If,
+    If, // if _ (in|is _) _ (else _)
     
-    #[regex("elif", priority = 60)]
-    Elif,
+    #[regex("when", priority = 60)]
+    When, // when (_ in|is) _ -> _, ...(, else _) ; AKA switch/match
     
     #[regex("else", priority = 60)]
     Else,
@@ -181,10 +181,10 @@ pub enum TokenKind {
     Loop, // rust-style infinite loop
     
     #[regex("while", priority = 60)]
-    While,
+    While, // while _ _
     
-    #[regex("every", priority = 60)]
-    Every, // every x, [1, 2, 3] ...; basically a for-in or for-of loop
+    #[regex("for", priority = 60)]
+    For, // for _ in _ _
     
     #[regex("do", priority = 60)]
     Do, // aka single-expression code block
@@ -193,6 +193,7 @@ pub enum TokenKind {
     Get,
     
     /* LITERAL-BASED TOKENS */
+    
     #[regex(r"\d+", priority = 40)]
     Num, // 1, 2, 3, 4; can be narrowed down to any num, unum, or chr type
     
@@ -237,8 +238,9 @@ pub enum TokenKind {
 #[allow(unused)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
-    /* SIMPLE EXPRESSIONS */
+    // ----- SIMPLE EXPRESSIONS -----
     // these consist of a single non-self-referential value (aka plain values and that's it)
+    
     /// empty expression; throws an error in declarations
     Empty,
     
@@ -263,9 +265,11 @@ pub enum Expr {
     /// variable/function/type name
     Name(EcoString),
     
-    /* SIMPLE COMPUND EXPRESSIONS */
-    /* they produce concrete value and kind*/
-    /// a code block: { f!. } or do f!.
+    
+    // ----- SIMPLE COMPUND EXPRESSIONS -----
+    // they produce a concrete value and kind
+    
+    /// a code block: { f!. }
     Block(EcoVec<Expr>),
     
     /// tuple literal. e.g: {{1, 2}}, {{'a', 62, }}
@@ -275,10 +279,10 @@ pub enum Expr {
     Arr(EcoVec<Expr>, VarKind), // varkind = first value's varkind
     
     /// record literal. e.g: rec: x num!
-    Rec(EcoVec<(EcoString, (Expr, VarKind))>), // TODO: rethink this type of expression asap
+    Rec(EcoVec<(EcoString, Expr, VarKind)>), // TODO: figure out if this would work
     
     /// enum
-    Enum(/* how do i represent this..? */),
+    Enum(/* how do i represent this..? */), // TODO: fucking figure it out already
     
     /// function literal. e.g: fun: arg num do, fun -> chr do, fun: arg num -> chr do
     Fun {
@@ -295,9 +299,12 @@ pub enum Expr {
         op: char,
     },
 
-    /// boolean ooperatiob
-    BlnOp {
+    /// logic ooperation
+    LogOp {
         // x&y, x|y, x\y, ¬x
+        left: Box<Expr>,
+        right: Box<Expr>,
+        op: char,
     },
     
     /// bitwise operations
@@ -309,8 +316,9 @@ pub enum Expr {
         op: char,
     },
     
-    /* COMPLEX COMPOUND EXPRESSIONS */
-    /* they produce an Expr::Empty value and a VarType::Unknown kind (tl;dr: can't be values) */
+    // ----- COMPLEX COMPOUND EXPRESSIONS -----
+    // they produce an Expr::Empty value and a VarType::Unknown kind (tl;dr: can't be values)
+    
     /// represents a new push to the stack, allocation on the heap, or type definition
     Bind {
         // e.g. let s = "". -> Bind {id: "s".into(), kind: (BindKind::Value, VarKind::Str), val: Box::new(Expr::Str("a".into()))}
@@ -452,22 +460,23 @@ impl std::fmt::Display for CodePos {
 #[allow(unused)]
 #[macro_export]
 macro_rules! get_t {
-	($from:expr) => {
-		EcoString::from(std::any::type_name_of_val($from))
-	};
-
-	($($from:expr),+) => {
-	    {
-			let origin = [$($from),+];
-			let mut res = EcoVec::<EcoString>::with_capacity(origin.len());
-			for val in origin.iter() {
-				res.push(std::any::type_name_of_val(val).into());
-			}
-			res
-		}
-	};
+    ($from:expr) => {
+        EcoString::from(std::any::type_name_of_val($from))
+    };
+    
+    ($($from:expr),+) => {
+        {
+            let origin = [$($from),+];
+            let mut res = EcoVec::<EcoString>::with_capacity(origin.len());
+            for val in origin.iter() {
+                res.push(std::any::type_name_of_val(val).into());
+            }
+            res
+        }
+    };
 }
 
+// TODO: GET RID OF THIS AAAAAAAAAAAAAAAAAAAAAAAAAAAAH
 /// array holding all types of token that throw an error when a
 /// literal precedes them (e.g. 1 + 1 => "1" is the prefix of "+")
 /// (dirty ass solution but imo easy to use, sorry for your eyes :P)

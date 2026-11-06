@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-ecow = "0.2.6"
+ecow = "0.3.1"
 llvm-sys = "211"
-logos = "0.16.0"
-unescaper = "0.1.8"
+logos = "0.16.1"
+unescaper = "0.2.0"
